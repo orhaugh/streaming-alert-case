@@ -18,23 +18,26 @@ import json
 from pathlib import Path
 
 from . import casenote
-from .agent import RunResult
-from .claims import check_claims
+from .agent import RunResult, redact
+from .claims import check_claims, flatten_claims
 from .facts import Facts
 from .scoring import score
 
 
-def _write(path: Path, value) -> None:
-    path.write_text(json.dumps(value, indent=2, ensure_ascii=False) + "\n")
+def _write(path: Path, value, scrub: bool = False) -> None:
+    text = json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+    # What a provider returned is scrubbed of account details before it is
+    # kept: an ARN, an account id or the AWS profile's name never reaches disk.
+    path.write_text(redact(text) if scrub else text)
 
 
 def record(result: RunResult, directory: Path, recorded: bool, events: Facts, graph: Facts, title: str) -> dict:
     directory.mkdir(parents=True, exist_ok=False)
     meta = {**result.meta, "recorded": recorded, "name": directory.name}
-    verdicts = check_claims(result.output["claims"], events, graph) if result.output else []
+    verdicts = check_claims(flatten_claims(result.output["claims"]), events, graph) if result.output else []
     scored = score(result.output, events, graph, meta["effort"])
-    _write(directory / "meta.json", meta)
-    _write(directory / "transcript.json", result.transcript)
+    _write(directory / "meta.json", meta, scrub=True)
+    _write(directory / "transcript.json", result.transcript, scrub=True)
     if result.output is not None:
         _write(directory / "output.json", result.output)
     _write(directory / "check.json", verdicts)

@@ -1,5 +1,5 @@
-"""The investigating agent: Claude with one read-only query tool, writing a
-case note as structured output.
+"""The investigating agent: Claude with one read-only query tool, submitting a
+case note through a second tool whose input schema is the case note's.
 
 Two arms share everything but the evidence's shape. The graph arm queries the
 Relate store in Cypher; the table arm queries the same records as SQLite
@@ -8,7 +8,10 @@ describes the evidence), task, tool name and shape, output schema and budgets
 are identical, and both outputs go through the same checker.
 
 The loop is the Anthropic SDK's manual tool-use loop, so every request,
-response, tool call and token is recorded as it happens.
+response, tool call and token is recorded as it happens. The model is reached
+either through the Claude API (provider "anthropic") or through Amazon Bedrock
+(provider "bedrock"), with the same request in both cases apart from the
+server-side refusal fallback, which only the Claude API offers.
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import sqlite3
 import time
 from dataclasses import dataclass
@@ -28,7 +32,7 @@ import anthropic
 import relate
 
 from . import tables
-from .claims import CLAIM_MEANINGS, OUTPUT_SCHEMA
+from .claims import CLAIM_MEANINGS, OUTPUT_SCHEMA, case_note_error
 from .events import sha256_of
 from .graph import STORE, Graph
 
@@ -39,10 +43,49 @@ MAX_REQUESTS = 30        # model requests a run may make
 MAX_TOKENS = 16000       # per response
 ROW_LIMIT = 200          # rows returned per query
 RESULT_CHARS = 30000     # characters returned per query
-# On a refusal, the API re-runs the request on a fallback model it chooses.
-# Each run records the model that served every response, so a run a fallback
-# served is visible in its meta.json and in the comparison.
+# On a refusal, the Claude API re-runs the request on a fallback model it
+# chooses. Each run records the model that served every response, so a run a
+# fallback served is visible in its meta.json and in the comparison. Bedrock
+# has no server-side fallback: there a refusal ends the run as refused.
 BETAS = ["server-side-fallback-2026-07-01"]
+
+PROVIDERS = ("anthropic", "bedrock")
+# The same model on Bedrock, through its global cross-region inference
+# profile: in some regions, ap-south-1 among them, Claude Opus 5.5 is offered
+# only through an inference profile, and global routes the request to any
+# region. BEDROCK_MODEL_ID overrides it, for example with
+# anthropic.claude-opus-5-5 where the model runs in the region itself.
+BEDROCK_MODEL = "global.anthropic.claude-opus-5-5"
+
+
+def model_for(provider: str) -> str:
+    return (os.environ.get("BEDROCK_MODEL_ID") or BEDROCK_MODEL) if provider == "bedrock" else MODEL
+
+
+def bedrock_region() -> str | None:
+    return os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+
+
+def make_client(provider: str) -> Any:
+    if provider == "bedrock":
+        # Bedrock's runtime endpoint, where its inference profiles are served.
+        # (On 13 November 2026 the Messages-API endpoint, bedrock-mantle,
+        # answered 404 for Claude Opus 5.5 in ap-south-1, under both ids.)
+        # Credentials come from the AWS SDK's own chain (AWS_PROFILE, SSO, the
+        # environment). Nothing about the account is recorded.
+        return anthropic.AnthropicBedrock(aws_region=bedrock_region(), aws_profile=os.environ.get("AWS_PROFILE"))
+    return anthropic.Anthropic()
+
+
+_ACCOUNT_DETAILS = re.compile(r"arn:aws[a-z-]*:[^\s\"',)]*|\b\d{12}\b")
+
+
+def redact(text: str) -> str:
+    """Error text with AWS ARNs, account ids and the profile name removed, so a
+    failed run can be recorded without saying whose account served it."""
+    text = _ACCOUNT_DETAILS.sub("[redacted]", text)
+    profile = os.environ.get("AWS_PROFILE")
+    return text.replace(profile, "[profile]") if profile else text
 
 GRAPH_DESCRIPTION = """Relate graph store, opened read-only; query it in Cypher. Times are epoch milliseconds (event time, UTC); amounts are in minor units (cents).
 - (:Run {id, replay, dataset_sha256, dataset_events, jobs, jobs_completed, clink_exit_status, cancelled, pipeline, clink, relate, lag_ms, fan_in_min_senders, fan_in_window_ms, onward_max_gap_ms}): the bounded replay this graph holds, one node.
@@ -73,7 +116,7 @@ The evidence:
 Claim types, and what each asserts:
 {claim_types}
 
-You can make at most {max_tool_calls} queries. When you have what you need, reply with the case note in the required JSON format and nothing else."""
+You can make at most {max_tool_calls} queries. When you have what you need, call submit_case_note once with the case note. That ends the investigation."""
 
 TASK = """Investigate every fan-in alert in this bounded replay.
 1. For each alert: the account, the event-time window, the number of distinct senders and of transfers, the total, and the contributing transfers.
@@ -83,17 +126,22 @@ TASK = """Investigate every fan-in alert in this bounded replay.
 Keep findings, hypotheses and unresolved questions apart."""
 
 
-NO_CREDENTIALS = ("no Anthropic API credentials: set ANTHROPIC_API_KEY, or run `ant auth login`. "
-                  "verify.py and explore.py need neither, and the recorded runs are in runs/recorded/.")
+NO_CREDENTIALS = ("no Anthropic API credentials: set ANTHROPIC_API_KEY, or run `ant auth login`, or use "
+                  "--provider bedrock with AWS credentials. verify.py and explore.py need none of them, and the "
+                  "recorded runs are in runs/recorded/.")
 
 
-def have_credentials() -> bool:
-    """What the SDK can authenticate with: a key or token in the environment,
-    or a profile `ant auth login` stored under ~/.config/anthropic/."""
+def missing_credentials(provider: str) -> str | None:
+    """Why a live run cannot start, or None. For the Claude API: a key or token
+    in the environment, or a profile `ant auth login` stored under
+    ~/.config/anthropic/. For Bedrock: a region; the AWS SDK resolves the
+    credentials and says what is missing."""
+    if provider == "bedrock":
+        return None if bedrock_region() else "Bedrock needs a region: set AWS_REGION, and AWS_PROFILE if not the default"
     if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
-        return True
+        return None
     config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "anthropic"
-    return config.is_dir()
+    return None if config.is_dir() else NO_CREDENTIALS
 
 
 def system_prompt(arm: str) -> str:
@@ -118,6 +166,26 @@ def tool(arm: str) -> dict:
             "additionalProperties": False,
         },
     }
+
+
+SUBMIT = "submit_case_note"
+
+
+def submit_tool() -> dict:
+    """The case note arrives as this tool's input. Its schema is the case
+    note's, and is not strict: as a strict schema (or as structured output)
+    the claim vocabulary compiles to a grammar larger than Bedrock accepts.
+    claims.case_note_error() and the checker validate what arrives instead."""
+    return {
+        "name": SUBMIT,
+        "description": ("Submit the case note, once, when the investigation is done; that ends it. Group the claims "
+                        "by type, and give every finding the ids of the claims that support it."),
+        "input_schema": OUTPUT_SCHEMA,
+    }
+
+
+def tools_for(arm: str) -> list[dict]:
+    return [tool(arm), submit_tool()]
 
 
 # ---------------------------------------------------------------------------
@@ -190,18 +258,53 @@ class RunResult:
     transcript: list[dict]
 
 
-def run(arm: str, client: Any = None, store: Path = STORE, table_path: Path = tables.TABLES,
-        log: Callable[[str], None] = print) -> RunResult:
-    """One investigation. client is an anthropic.Anthropic; tests pass a stand-in."""
-    client = client or anthropic.Anthropic()
+def send(client: Any, provider: str, system: str, tools: list[dict], messages: list) -> Any:
+    """One model request, the same on both providers apart from the fallback."""
+    request = dict(
+        model=model_for(provider),
+        max_tokens=MAX_TOKENS,
+        system=system,
+        tools=tools,
+        messages=messages,
+        output_config={"effort": EFFORT},
+        cache_control={"type": "ephemeral"},
+    )
+    if provider == "anthropic":
+        return client.beta.messages.create(**request, betas=BETAS, fallbacks="default")
+    return client.messages.create(**request)
+
+
+def provider_error(error: Exception) -> bool:
+    """An API error, or the AWS SDK failing to find or refresh credentials."""
+    return isinstance(error, anthropic.APIError) or type(error).__module__.split(".")[0] in ("botocore", "boto3")
+
+
+def smoke(arm: str, provider: str, client: Any = None) -> dict:
+    """Sends a run's first request once and reports how the provider answered:
+    that it accepts the request's tools, output format, effort and caching.
+    Writes nothing, and runs no query."""
+    client = client or make_client(provider)
+    response = send(client, provider, system_prompt(arm), tools_for(arm), [{"role": "user", "content": TASK}])
+    usage = response.usage
+    return {"provider": provider, "model_requested": model_for(provider), "model_served": response.model,
+            "stop_reason": response.stop_reason, "blocks": [getattr(b, "type", None) for b in response.content],
+            "input_tokens": usage.input_tokens, "output_tokens": usage.output_tokens,
+            "cache_creation_input_tokens": getattr(usage, "cache_creation_input_tokens", None),
+            "cache_read_input_tokens": getattr(usage, "cache_read_input_tokens", None)}
+
+
+def run(arm: str, client: Any = None, provider: str = "anthropic", store: Path = STORE,
+        table_path: Path = tables.TABLES, log: Callable[[str], None] = print) -> RunResult:
+    """One investigation. client is the provider's SDK client; tests pass a stand-in."""
+    client = client or make_client(provider)
     execute = GraphQueries(store) if arm == "graph" else TableQueries(table_path)
-    system, tools = system_prompt(arm), [tool(arm)]
+    system, tools = system_prompt(arm), tools_for(arm)
     messages: list[dict] = [{"role": "user", "content": TASK}]
     transcript: list[dict] = []
     totals = {"input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
     tool_calls = tool_errors = requests = 0
     served: list[str] = []
-    fallback_used = False
+    fallback_used = reminded = False
     status, output, stop_reason = "error", None, None
     started = datetime.now(timezone.utc)
     clock = time.monotonic()
@@ -211,17 +314,7 @@ def run(arm: str, client: Any = None, store: Path = STORE, table_path: Path = ta
                 status = "request_budget_exhausted"
                 break
             requests += 1
-            response = client.beta.messages.create(
-                model=MODEL,
-                max_tokens=MAX_TOKENS,
-                system=system,
-                tools=tools,
-                messages=messages,
-                output_config={"effort": EFFORT, "format": {"type": "json_schema", "schema": OUTPUT_SCHEMA}},
-                cache_control={"type": "ephemeral"},
-                betas=BETAS,
-                fallbacks="default",
-            )
+            response = send(client, provider, system, tools, messages)
             stop_reason = response.stop_reason
             served.append(response.model)
             usage = response.usage
@@ -244,15 +337,26 @@ def run(arm: str, client: Any = None, store: Path = STORE, table_path: Path = ta
             if stop_reason == "pause_turn":
                 continue
             if stop_reason == "tool_use":
+                calls = [b for b in response.content if getattr(b, "type", None) == "tool_use"]
+                submitted = [b for b in calls if b.name == SUBMIT]
+                if submitted:
+                    # The case note ends the run, whatever else the turn asked for.
+                    problem = case_note_error(submitted[0].input)
+                    if problem:
+                        status = "malformed_case_note"
+                        transcript.append({"case_note_error": problem})
+                    else:
+                        status, output = "completed", submitted[0].input
+                    break
                 results = []
-                for block in response.content:
-                    if getattr(block, "type", None) != "tool_use":
-                        continue
+                for block in calls:
                     given = block.input if isinstance(block.input, dict) else {}
                     query, purpose = str(given.get("query", "")), str(given.get("purpose", ""))
-                    if tool_calls >= MAX_TOOL_CALLS:
-                        ok, text = False, ("error: the query budget is spent; reply with the case note now, "
-                                           "claiming only what earlier queries showed")
+                    if block.name != "query":
+                        ok, text = False, f"error: there is no tool {block.name!r}; use query or {SUBMIT}"
+                    elif tool_calls >= MAX_TOOL_CALLS:
+                        ok, text = False, (f"error: the query budget is spent; call {SUBMIT} now, claiming only "
+                                           "what earlier queries showed")
                     else:
                         tool_calls += 1
                         began = time.monotonic()
@@ -268,21 +372,23 @@ def run(arm: str, client: Any = None, store: Path = STORE, table_path: Path = ta
                 messages.append({"role": "user", "content": results})
                 continue
             if stop_reason == "end_turn":
-                text = next((b.text for b in response.content if getattr(b, "type", None) == "text"), None)
-                try:
-                    output = json.loads(text) if text is not None else None
-                    status = "completed" if isinstance(output, dict) else "unparseable"
-                    if status != "completed":
-                        output = None
-                except json.JSONDecodeError:
-                    status, output = "unparseable", None
-                break
+                # The turn ended without a case note. Remind once, the same way
+                # in both arms; a second time ends the run without one.
+                if reminded:
+                    status = "ended_without_case_note"
+                    break
+                reminded = True
+                transcript.append({"reminder": f"asked once to call {SUBMIT}"})
+                messages.append({"role": "user", "content": f"Submit the case note by calling {SUBMIT}."})
+                continue
             status = f"stopped:{stop_reason}"
             break
-    except anthropic.APIError as error:
-        status = f"api_error:{type(error).__name__}"
-        transcript.append({"error": str(error)})
-        log(f"  API error: {error}")
+    except Exception as error:
+        if not provider_error(error):
+            raise
+        status = f"provider_error:{type(error).__name__}"
+        transcript.append({"error": redact(str(error))})
+        log(f"  provider error: {redact(str(error))}")
     finally:
         execute.close()
 
@@ -291,7 +397,9 @@ def run(arm: str, client: Any = None, store: Path = STORE, table_path: Path = ta
         "arm": arm,
         "status": status,
         "stop_reason": stop_reason,
-        "model_requested": MODEL,
+        "provider": provider,
+        "region": bedrock_region() if provider == "bedrock" else None,
+        "model_requested": model_for(provider),
         "models_served": sorted(set(served)),
         "fallback_used": fallback_used,
         "effort_setting": EFFORT,

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import json
 
+from .claims import flatten_claims
+
 
 def _claim_text(claim: dict) -> str:
     fields = {k: v for k, v in claim.items() if k not in ("id", "type") and v is not None}
@@ -47,7 +49,7 @@ def render(output: dict | None, verdicts: list[dict], meta: dict, score: dict, t
         lines.append(f"  References: {refs}")
     lines += ["", "## Claims, as checked", "", "| Claim | Type | Asserts | Checker |", "|---|---|---|---|"]
     by_id = {v["claim"]: v for v in verdicts}
-    for claim in output["claims"]:
+    for claim in flatten_claims(output["claims"]):
         v = by_id.get(claim.get("id")) if isinstance(claim, dict) else None
         verdict = v["status"] if v else "malformed"
         if v and v["status"] != "supported":

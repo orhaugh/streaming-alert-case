@@ -16,7 +16,7 @@ claims it cites must exist and be supported.
 from __future__ import annotations
 
 from . import answers
-from .claims import check_claims, references_in, resolves
+from .claims import check_claims, flatten_claims, references_in, resolves
 from .facts import Facts
 
 
@@ -26,7 +26,7 @@ def score(output: dict | None, events: Facts, graph: Facts, effort: dict) -> dic
                 "claims": 0, "supported": 0, "unsupported": 0, "references": 0, "valid_references": 0,
                 "reference_validity": None, "findings": 0, "findings_without_claims": 0,
                 "findings_citing_missing_claims": 0, "findings_citing_unsupported_claims": 0, "effort": effort}
-    claims = output.get("claims", [])
+    claims = flatten_claims(output.get("claims"))
     verdicts = check_claims(claims, events, graph)
     key = answers.covered(events, claims, verdicts)
     status = {v["claim"]: v["status"] for v in verdicts if v["claim"] is not None}

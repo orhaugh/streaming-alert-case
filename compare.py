@@ -29,6 +29,8 @@ from alertcase.recording import record
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--runs", type=int, default=3, help="runs per arm (default 3)")
+    parser.add_argument("--provider", choices=agent.PROVIDERS, default="anthropic",
+                        help="anthropic: the Claude API (default); bedrock: Amazon Bedrock. Both arms use the same one.")
     parser.add_argument("--record", metavar="NAME", help="write runs/recorded/NAME instead of a live directory")
     args = parser.parse_args()
 
@@ -36,17 +38,19 @@ def main() -> int:
             else Path("runs/live") / f"comparison-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
     if root.exists():
         raise SystemExit(f"refused     {root} exists")
-    if not agent.have_credentials():
-        raise SystemExit(agent.NO_CREDENTIALS)
+    problem = agent.missing_credentials(args.provider)
+    if problem:
+        raise SystemExit(problem)
     events = facts.from_events()
     with Graph() as graph:
         graph_facts = facts.from_graph(graph)
-    print(f"{args.runs} run(s) per arm, model {agent.MODEL}, effort {agent.EFFORT}, writing {root}")
+    print(f"{args.runs} run(s) per arm, {args.provider}, model {agent.model_for(args.provider)}, "
+          f"effort {agent.EFFORT}, writing {root}")
     for n in range(1, args.runs + 1):
         order = ("graph", "table") if n % 2 else ("table", "graph")
         for arm in order:
             print(f"{arm} {n}")
-            result = agent.run(arm)
+            result = agent.run(arm, provider=args.provider)
             scored = record(result, root / f"{arm}-{n}", recorded=bool(args.record), events=events,
                             graph=graph_facts, title=f"Case note: {arm} arm, run {n}")
             print(f"  {result.status}: correctness {scored['correctness']:.2f}, {scored['unsupported']} claim(s) not "

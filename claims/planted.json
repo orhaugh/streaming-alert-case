@@ -18,6 +18,6 @@
   {
     "why_planted": "Cites a transfer that is not in the bounded dataset.",
     "claim": {"id": "P4", "type": "event", "transfer": "T0099", "sender": "A-9278", "receiver": "A-4989",
-              "amount_minor": 357000, "event_time_ms": null, "device": null}
+              "amount_minor": 357000, "event_time_ms": 1794304500000, "device": "D-568"}
   }
 ]

@@ -38,22 +38,24 @@ def _nullable(schema: dict) -> dict:
 ABSENCE_KINDS = ("no_shared_device_on_route", "no_onward_link_from_transfer", "no_fan_in_alert_for_account")
 COUNT_PATTERNS = ("fan_in_alerts", "transfers", "onward_links", "accounts", "devices")
 
+# A claim states every value of its type. Only three links are optional (null
+# when not asserted): where a path starts and where it rests, and the route a
+# shared device is judged on. Structured outputs also limit how many
+# nullable fields a schema may have.
 CLAIM_FIELDS: dict[str, dict[str, dict]] = {
     "event": {
-        "transfer": _STR, "sender": _nullable(_STR), "receiver": _nullable(_STR),
-        "amount_minor": _nullable(_INT), "event_time_ms": _nullable(_INT), "device": _nullable(_STR),
+        "transfer": _STR, "sender": _STR, "receiver": _STR, "amount_minor": _INT, "event_time_ms": _INT,
+        "device": _STR,
     },
     "indicator": {
-        "indicator": _STR, "account": _nullable(_STR), "window_start_ms": _nullable(_INT),
-        "window_end_ms": _nullable(_INT), "senders": _nullable(_INT), "transfers": _nullable(_INT),
-        "total_minor": _nullable(_INT), "contributing": _nullable(_STR_LIST),
+        "indicator": _STR, "account": _STR, "window_start_ms": _INT, "window_end_ms": _INT, "senders": _INT,
+        "transfers": _INT, "total_minor": _INT, "contributing": _STR_LIST,
     },
     "onward_path": {
         "transfers": _STR_LIST, "from_indicator": _nullable(_STR), "comes_to_rest_at": _nullable(_STR),
     },
     "onward_reach": {
-        "indicator": _STR, "max_depth": _nullable(_INT), "terminal_accounts": _nullable(_STR_LIST),
-        "route_accounts": _nullable(_STR_LIST),
+        "indicator": _STR, "max_depth": _INT, "terminal_accounts": _STR_LIST, "route_accounts": _STR_LIST,
     },
     "shared_device": {
         "device": _STR, "accounts": _STR_LIST, "on_route_of": _nullable(_STR),
@@ -67,9 +69,9 @@ CLAIM_FIELDS: dict[str, dict[str, dict]] = {
 }
 
 CLAIM_MEANINGS = {
-    "event": "the transfer exists, and every non-null attribute is as recorded",
-    "indicator": "the fan-in indicator exists, and every non-null value is as recorded; "
-                 "contributing is the complete set of its contributing transfers",
+    "event": "the transfer exists with exactly this sender, receiver, amount, event time and device",
+    "indicator": "the fan-in indicator exists with exactly these values; contributing is the complete set of its "
+                 "contributing transfers",
     "onward_path": "each consecutive pair of transfers is a recorded onward link; from_indicator: the first transfer "
                    "contributes to that indicator; comes_to_rest_at: the last transfer was paid to that account and "
                    "was not passed on",
@@ -99,17 +101,66 @@ def _item(props: dict) -> dict:
                                         "additionalProperties": False}}
 
 
+# The agent's output groups its claims by type, one array each: a union over
+# the seven claim shapes compiles to a grammar too large for structured
+# outputs. flatten_claims() turns the groups back into one list of typed claims.
 OUTPUT_SCHEMA = {
     "type": "object",
     "properties": {
         "findings": _item({"id": _STR, "statement": _STR, "claim_ids": _STR_LIST}),
         "hypotheses": _item({"id": _STR, "statement": _STR, "references": _STR_LIST}),
         "unresolved": _item({"id": _STR, "question": _STR, "references": _STR_LIST}),
-        "claims": {"type": "array", "items": {"anyOf": [claim_schema(kind) for kind in CLAIM_FIELDS]}},
+        "claims": {
+            "type": "object",
+            "properties": {kind: _item({"id": _STR, **fields}) for kind, fields in CLAIM_FIELDS.items()},
+            "required": list(CLAIM_FIELDS),
+            "additionalProperties": False,
+        },
     },
     "required": ["findings", "hypotheses", "unresolved", "claims"],
     "additionalProperties": False,
 }
+
+
+def flatten_claims(claims: Any) -> list:
+    """The agent's claims as one list, each with its type. Grouped claims
+    ({"event": [...], ...}) gain a "type"; a list is returned as it is."""
+    if isinstance(claims, dict):
+        return [{"id": c.get("id"), "type": kind, **{k: v for k, v in c.items() if k != "id"}}
+                if isinstance(c, dict) else c
+                for kind, group in claims.items() for c in (group if isinstance(group, list) else [group])]
+    return claims if isinstance(claims, list) else []
+
+
+_SECTIONS = {"findings": ("id", "statement", "claim_ids"), "hypotheses": ("id", "statement", "references"),
+             "unresolved": ("id", "question", "references")}
+
+
+def case_note_error(note: Any) -> str | None:
+    """Why a submitted case note is not one, or None. Checks its envelope:
+    the three sections and the claim groups. Each claim's own shape is judged
+    by the checker, which counts a bad one as malformed."""
+    if not isinstance(note, dict):
+        return "the case note is not an object"
+    if set(note) != set(OUTPUT_SCHEMA["properties"]):
+        return f"the case note has the fields {sorted(note)}, not {sorted(OUTPUT_SCHEMA['properties'])}"
+    for section, fields in _SECTIONS.items():
+        items = note[section]
+        if not isinstance(items, list):
+            return f"{section} is not a list"
+        for item in items:
+            if not isinstance(item, dict) or set(item) != set(fields):
+                return f"an entry in {section} does not have exactly the fields {list(fields)}"
+            if not all(isinstance(item[f], str) for f in fields[:2]):
+                return f"an entry in {section} has a field that is not text"
+            if not isinstance(item[fields[2]], list) or not all(isinstance(r, str) for r in item[fields[2]]):
+                return f"an entry in {section} has {fields[2]} that is not a list of ids"
+    claims = note["claims"]
+    if not isinstance(claims, dict) or not set(claims) <= set(CLAIM_FIELDS):
+        return f"claims must be grouped by the types {list(CLAIM_FIELDS)}"
+    if not all(isinstance(group, list) for group in claims.values()):
+        return "each claim group must be a list"
+    return None
 
 
 # ---------------------------------------------------------------------------

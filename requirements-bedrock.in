@@ -1,0 +1,5 @@
+# Optional: the dependencies for --provider bedrock, on top of requirements.in.
+# requirements-bedrock.txt is the hashed lock, made with:
+#   uv pip compile requirements-bedrock.in --universal --generate-hashes --python-version 3.11 -o requirements-bedrock.txt
+-r requirements.in
+anthropic[bedrock]==2.8.0

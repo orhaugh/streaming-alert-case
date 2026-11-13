@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 from alertcase import answers, facts, tables
-from alertcase.claims import check_claims
+from alertcase.claims import check_claims, flatten_claims
 from alertcase.comparison import summarise
 from alertcase.graph import Graph
 from alertcase.scoring import score
@@ -95,7 +95,7 @@ def main() -> int:
     for run in runs:
         meta = json.loads((run / "meta.json").read_text())
         output = json.loads((run / "output.json").read_text()) if (run / "output.json").exists() else None
-        claims = output["claims"] if output else []
+        claims = flatten_claims(output["claims"]) if output else []
         again = check_claims(claims, events, graph_facts)
         recorded_check = json.loads((run / "check.json").read_text())
         recorded_score = json.loads((run / "score.json").read_text())

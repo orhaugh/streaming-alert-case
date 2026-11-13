@@ -78,9 +78,9 @@ class CheckerTest(unittest.TestCase):
                 if r["transfer_id"] == "T0009":
                     r["amount_minor"] += 1
             altered.write_text("".join(json.dumps(r) + "\n" for r in records))
-            stated = self.events.transfers["T0009"]["amount_minor"]
-            claim = {"id": "C1", "type": "event", "transfer": "T0009", "sender": None, "receiver": None,
-                     "amount_minor": stated, "event_time_ms": None, "device": None}
+            t = self.events.transfers["T0009"]
+            claim = {"id": "C1", "type": "event", "transfer": "T0009", "sender": t["src"], "receiver": t["dst"],
+                     "amount_minor": t["amount_minor"], "event_time_ms": t["ts"], "device": t["device"]}
             verdict = check_claims([claim], facts.from_events(altered), self.graph)[0]
             self.assertEqual(verdict["status"], "inconsistent", verdict)
         finally:
