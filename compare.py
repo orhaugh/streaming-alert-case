@@ -36,6 +36,8 @@ def main() -> int:
             else Path("runs/live") / f"comparison-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
     if root.exists():
         raise SystemExit(f"refused     {root} exists")
+    if not agent.have_credentials():
+        raise SystemExit(agent.NO_CREDENTIALS)
     events = facts.from_events()
     with Graph() as graph:
         graph_facts = facts.from_graph(graph)

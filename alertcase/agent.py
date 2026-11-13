@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import sqlite3
 import time
@@ -80,6 +81,19 @@ TASK = """Investigate every fan-in alert in this bounded replay.
 3. For each alert, which accounts on its routes sent transfers from a device that another account on those routes also used?
 4. The alerts may look alike as indicators. Say exactly which recorded relationships distinguish them, and how that changes the interpretation.
 Keep findings, hypotheses and unresolved questions apart."""
+
+
+NO_CREDENTIALS = ("no Anthropic API credentials: set ANTHROPIC_API_KEY, or run `ant auth login`. "
+                  "verify.py and explore.py need neither, and the recorded runs are in runs/recorded/.")
+
+
+def have_credentials() -> bool:
+    """What the SDK can authenticate with: a key or token in the environment,
+    or a profile `ant auth login` stored under ~/.config/anthropic/."""
+    if os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN"):
+        return True
+    config = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "anthropic"
+    return config.is_dir()
 
 
 def system_prompt(arm: str) -> str:
