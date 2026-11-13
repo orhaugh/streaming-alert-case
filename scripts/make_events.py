@@ -69,7 +69,7 @@ def build() -> tuple[list[dict], dict]:
                      "delay_s": delay_s, "tag": tag})
 
     # Suspicious: six unrelated senders pay one account inside the 09:00 hour;
-    # it is passed on in two tranches through two further accounts.
+    # it pays two tranches on, each through two further accounts.
     transfer("s_send1", "s_collect", 42000, at(9, 5, 10))
     transfer("s_send2", "s_collect", 61500, at(9, 10, 40))
     transfer("s_send3", "s_collect", 38000, at(9, 18, 5))
@@ -84,7 +84,7 @@ def build() -> tuple[list[dict], dict]:
     transfer("s_hop2", "s_cashout", 202000, at(10, 8, 10))
 
     # Benign lookalike: six members pay a collection account inside the 14:00
-    # hour; it pays a supplier within half an hour and the money stops there.
+    # hour; it pays a supplier within half an hour, and no transfer follows that.
     for n, (minute, second) in enumerate([(2, 20), (9, 5), (15, 40), (22, 10), (30, 30), (41, 0)], start=1):
         transfer(f"b_pay{n}", "b_collect", 2500, at(14, minute, second))
     transfer("b_collect", "b_supplier", 14000, at(14, 50, 0))
@@ -96,7 +96,7 @@ def build() -> tuple[list[dict], dict]:
     transfer("f2", "shop1", 4120, at(11, 40, 0))          # no alert anywhere near them
     for n, minute in enumerate([5, 15, 25, 35], start=1):  # four senders: below the threshold
         transfer(f"n{n}", "g", 5000 + 100 * n, at(11, minute, 0))
-    transfer("n5", "k", 30000, at(12, 0, 0))               # passed on after 45 minutes:
+    transfer("n5", "k", 30000, at(12, 0, 0))               # a debit 45 minutes after the credit:
     transfer("k", "n6", 29000, at(12, 45, 0))              # outside the 30 minute rule
     for n, (minute, sender) in enumerate([(5, "n7"), (12, "n8"), (20, "n9"), (31, "n7"), (44, "n8"), (52, "n9")]):
         transfer(sender, "q", 1200 + 10 * n, at(15, minute, 0))  # six credits, three senders

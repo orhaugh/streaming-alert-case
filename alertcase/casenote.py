@@ -25,8 +25,11 @@ def render(output: dict | None, verdicts: list[dict], meta: dict, score: dict, t
     lines.append("")
     lines.append("Scope: one bounded replay of a synthetic event file, as processed by the run its evidence records. "
                  "Nothing here is a conclusion about data outside it. Recorded relationships are not proof of fraud, "
-                 "ownership, identity or causation. The checker validates the structured claims below against the "
-                 "original events and the graph; it does not validate the wording of findings.")
+                 "ownership, identity or causation. An onward link records timing: a debit within 30 minutes after a "
+                 "credit to the same account. It is a candidate onward-transfer relationship, not evidence that the "
+                 "same funds moved, and a path ends where no further qualifying transfer exists in this dataset. The "
+                 "checker validates the structured claims below against the original events and the graph; it does "
+                 "not validate the wording of findings.")
     if output is None:
         lines += ["", "The run produced no case note."]
         return "\n".join(lines) + "\n"

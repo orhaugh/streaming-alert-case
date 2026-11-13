@@ -11,9 +11,9 @@
               "total_minor": 281000, "contributing": ["T0002", "T0003", "T0006", "T0010", "T0011"]}
   },
   {
-    "why_planted": "The resting point an arrival-order lookup would report: the debit T0008 arrived before the credit T0007, so the lookup misses onward:T0007:T0008 and stops at A-5092.",
+    "why_planted": "The path end an arrival-order lookup would report: the debit T0008 arrived before the credit T0007, so the lookup misses onward:T0007:T0008 and ends the path at A-5092 too early.",
     "claim": {"id": "P3", "type": "onward_path", "transfers": ["T0002", "T0007"],
-              "from_indicator": "fan_in:A-9278:1794301200000", "comes_to_rest_at": "A-5092"}
+              "from_indicator": "fan_in:A-9278:1794301200000", "ends_at": "A-5092"}
   },
   {
     "why_planted": "Cites a transfer that is not in the bounded dataset.",

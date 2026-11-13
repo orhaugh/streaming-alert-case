@@ -93,7 +93,7 @@ class Graph:
         return sorted(found, key=lambda p: p["id"])
 
     def investigation(self) -> list[dict]:
-        """Per fan-in indicator: onward depth, resting accounts, route accounts
+        """Per fan-in indicator: onward depth, the accounts where its candidate paths end, path accounts
         and the devices two or more route accounts sent from, all by Cypher."""
         result = {i["id"]: {"indicator": i["id"], "account": i["account"], "onward_depth": 0,
                             "terminal_accounts": [], "route_accounts": [i["account"]], "shared_devices": {}}
@@ -112,5 +112,5 @@ class Graph:
 
     def routes(self, indicator: str) -> list[dict]:
         """Every onward route from the indicator's contributing transfers to a
-        transfer that was not passed on, longest first."""
+        transfer with no onward link, longest first."""
         return self.rows(LONGEST_ROUTES, indicator=indicator)

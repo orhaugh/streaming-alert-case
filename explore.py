@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reopen the store read-only and read the investigation from it. No model.
 
-With no arguments, prints each alert with its evidence, its onward routes and
+With no arguments, prints each alert with its evidence, its candidate onward paths and
 the devices on them, where the two alerts differ, and what event-time
 processing kept that arrival order would have lost. With --cypher or --sql,
 runs one read-only query against the store or the tables and prints the rows.
@@ -57,8 +57,9 @@ def investigation(graph: Graph, events_path: Path, scenario_path: Path) -> None:
         print(f"  evidence   {' '.join(i['transfer_ids'])}")
         routes = graph.routes(i["id"])
         if not routes:
-            print("  onward     nothing passed on within 30 minutes")
-        # Routes that share everything after their first transfer are one chain
+            print("  onward     no onward link from any contributing transfer in this dataset")
+        # Candidate paths that share everything after their first transfer are one
+        # chain of onward links, reached from several contributing transfers.
         # fed by several contributing transfers.
         chains: dict[tuple[str, ...], list[dict]] = {}
         for r in routes:
@@ -67,27 +68,29 @@ def investigation(graph: Graph, events_path: Path, scenario_path: Path) -> None:
             accounts = " -> ".join([i["account"]] + [transfers[t]["dst"] for t in chain])
             sources = " ".join(r["transfers"][0] for r in fed)
             steps = "  ".join(f"{t} {money(transfers[t]['amount_minor'])} at {clock(transfers[t]['ts'])}" for t in chain)
-            print(f"  route      {accounts}, {len(chain)} onward link(s)")
+            print(f"  path       {accounts}, {len(chain)} onward link(s)")
             print(f"             from {sources}; then {steps}")
             example = fed[0]
             print(f"             e.g. path:{'>'.join(example['transfers'])} = {' '.join(example['links'])}")
         if routes:
-            print(f"  onward     {f['onward_depth']} onward link(s) at most; came to rest at {', '.join(f['terminal_accounts'])}")
+            print(f"  onward     {f['onward_depth']} onward link(s) at most; the paths end at "
+                  f"{', '.join(f['terminal_accounts'])}, with no further qualifying transfer in this dataset")
         if f["shared_devices"]:
             for device, accounts in f["shared_devices"].items():
-                print(f"  device     {device} was used to send from {', '.join(accounts)}, all on this alert's routes")
+                print(f"  device     {device} was used to send from {', '.join(accounts)}, all on this alert's paths")
         else:
-            print("  device     no device is shared between accounts on this alert's routes")
+            print("  device     no device is shared between accounts on this alert's paths")
 
     if len(indicators) != 2:
         print("\nTHE ALERTS SIDE BY SIDE")
-        print(f"  {'account':<10} {'label':<34} {'senders':>7} {'total':>12}  {'depth':>5}  {'came to rest at':<22} shared on route")
+        print(f"  {'account':<10} {'label':<34} {'senders':>7} {'total':>12}  {'depth':>5}  {'paths end at':<22} shared on paths")
         for i in indicators:
             f = found[i["id"]]
             shared = "; ".join(f"{d} ({len(acc)})" for d, acc in f["shared_devices"].items()) or "none"
             print(f"  {i['account']:<10} {labels.get(i['account'], 'not designed'):<34} {i['senders']:>7} "
                   f"{money(i['total_minor']):>12}  {f['onward_depth']:>5}  {', '.join(f['terminal_accounts']) or '-':<22} {shared}")
-        print("  Every alert fires on the same rule. The relationships, read from Relate, are what separate them.")
+        print("  Every alert fires on the same rule. The recorded relationships, read from Relate, are what"
+              " separate them. An onward link records timing, not that the same funds moved.")
         event_time_kept(designed, events_path, transfers)
         return
 
@@ -97,11 +100,11 @@ def investigation(graph: Graph, events_path: Path, scenario_path: Path) -> None:
         ("distinct senders in one hour", a["senders"], b["senders"]),
         ("transfers in the window", a["transfers"], b["transfers"]),
         ("total received", money(a["total_minor"]), money(b["total_minor"])),
-        ("passed on within 30 minutes", "yes" if fa["onward_depth"] else "no", "yes" if fb["onward_depth"] else "no"),
+        ("onward link within 30 minutes", "yes" if fa["onward_depth"] else "no", "yes" if fb["onward_depth"] else "no"),
         ("onward links, at most", fa["onward_depth"], fb["onward_depth"]),
-        ("came to rest at", ", ".join(fa["terminal_accounts"]), ", ".join(fb["terminal_accounts"])),
-        ("accounts on the routes", len(fa["route_accounts"]), len(fb["route_accounts"])),
-        ("device shared on the routes",
+        ("candidate paths end at", ", ".join(fa["terminal_accounts"]), ", ".join(fb["terminal_accounts"])),
+        ("accounts on the paths", len(fa["route_accounts"]), len(fb["route_accounts"])),
+        ("device shared on the paths",
          "; ".join(f"{d} ({len(acc)} accounts)" for d, acc in fa["shared_devices"].items()) or "none",
          "; ".join(f"{d} ({len(acc)} accounts)" for d, acc in fb["shared_devices"].items()) or "none"),
     ]
@@ -110,9 +113,9 @@ def investigation(graph: Graph, events_path: Path, scenario_path: Path) -> None:
     print(f"  {'':<30} {a['account']:<20} {b['account']:<20} from")
     for (name, x, y), source in zip(rows, sources):
         print(f"  {name:<30} {str(x):<20} {str(y):<20} {source}")
-    print("  Both alerts fire on the same rules and both pass money on within 30 minutes. They differ in the totals,"
-          " and in the relationships: how far the money went, where it came to rest, and a device shared along"
-          " the way.")
+    print("  Both alerts fire on the same rule, and both have onward links within 30 minutes. They differ in the"
+          " totals, and in the recorded relationships: how many onward links their paths run to, where the paths"
+          " end, and a device shared along them. An onward link records timing, not that the same funds moved.")
 
     event_time_kept(designed, events_path, transfers)
 
@@ -134,8 +137,8 @@ def event_time_kept(designed: dict, events_path: Path, transfers: dict) -> None:
           f"{full[suspect]['senders']} and {money(full[suspect]['total_minor'])}.")
     fwd = inv["forwarding"]
     missed = ", ".join(lost_links) if len(lost_links) <= 3 else f"{len(lost_links)} of {len(all_links)} onward links"
-    print(f"  {fwd['debit_arrives_first']} (the debit) arrived before {fwd['credit']} (the credit it passes on). A lookup made "
-          f"as events arrive misses {missed} and reports {transfers[fwd['credit']]['dst']} as a resting point.")
+    print(f"  {fwd['debit_arrives_first']} (a debit) arrived before {fwd['credit']} (the credit it follows). A lookup made "
+          f"as events arrive misses {missed}, and ends a path at {transfers[fwd['credit']]['dst']} too early.")
 
 
 def main() -> int:

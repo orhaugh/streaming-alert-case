@@ -6,9 +6,9 @@ designed as suspicious (deep onward chains, one branching, devices shared
 along the way) and three as benign lookalikes (one onward link, none at all,
 or a device shared only off the route). Decoys: a six-link onward chain tied
 to no alert, devices on a route that an account off the route also uses, and
-a resting account that sends again hours later. Two inversions are placed as
+an account where a path ends that sends again hours later. Two inversions are placed as
 in the small case: a credit at a window's edge that arrives after the next
-hour's events, and a debit that arrives before the credit it passes on.
+hour's events, and a debit that arrives before the credit it follows.
 
 The file is far larger than an agent can read through its query tool, and
 than a model's context: investigating it means querying it.
@@ -82,10 +82,10 @@ def fan_in(account: str, times: list[int], amounts: list[int], late_index: int |
 designed: list[dict] = []
 marks: dict[str, int] = {}
 
-# S1: suspicious. Seven senders, every credit passed on, two waves, four onward
-# links each to one resting account; the four accounts that pass money on all
+# S1: suspicious. Seven senders, every credit followed by a debit, two waves,
+# four onward links each to one end account; the four accounts that send on all
 # send from one device. The last credit is late at the window's edge, and one
-# debit arrives before the credit it passes on.
+# debit arrives before the credit it follows.
 V1, I1, I2, I3, R1 = (new_account() for _ in range(5))
 d1 = new_device()
 times = [at(0, 10, m) for m in (2, 9, 17, 23, 44, 52)] + [at(0, 10, 59)]
@@ -103,8 +103,8 @@ designed.append({"label": "suspicious", "account": V1, "window_start": at(0, 10,
                  "onward_depth": 4, "terminal": [R1], "route": sorted([V1, I1, I2, I3, R1]),
                  "shared_devices": {d1: sorted([V1, I1, I2, I3])}})
 
-# S2: suspicious, branching. Six senders; the money splits after the first
-# intermediary, three links deep to one resting account and two to another;
+# S2: suspicious, branching. Six senders; the paths split after the first
+# intermediary, three links deep to one end account and two to another;
 # the alerted account and the first intermediary send from one device.
 V2, J1, K1, R2a, R2b = (new_account() for _ in range(5))
 d2 = new_device()
@@ -118,7 +118,7 @@ designed.append({"label": "suspicious", "account": V2, "window_start": at(1, 14,
                  "onward_depth": 3, "terminal": sorted([R2a, R2b]), "route": sorted([V2, J1, K1, R2a, R2b]),
                  "shared_devices": {d2: sorted([V2, J1])}})
 
-# S3: suspicious, a long chain. Eight senders, five onward links to one resting
+# S3: suspicious, a long chain. Eight senders, five onward links to one end
 # account; two intermediaries send from one device that an account off the
 # route also uses.
 V3, L1, L2, L3, L4, R3 = (new_account() for _ in range(6))
@@ -143,7 +143,7 @@ send(W1, Q1, 9500, at(0, 19, 30), new_device())
 designed.append({"label": "benign", "account": W1, "window_start": at(0, 19, 0), "senders": sorted(senders),
                  "onward_depth": 1, "terminal": [Q1], "route": sorted([W1, Q1]), "shared_devices": {}})
 
-# B2: benign lookalike. Seven credits and nothing passed on within 30 minutes:
+# B2: benign lookalike. Seven credits and no debit within 30 minutes of any:
 # the account's one payment comes two hours later.
 W2 = new_account()
 senders, _ = fan_in(W2, [at(2, 12, m) for m in (3, 9, 16, 22, 35, 44, 51)], [4000, 3500, 5000, 4500, 3000, 4000, 5500])
@@ -151,7 +151,7 @@ send(W2, new_account(), 21000, at(2, 14, 55), new_device())
 designed.append({"label": "benign", "account": W2, "window_start": at(2, 12, 0), "senders": sorted(senders),
                  "onward_depth": 0, "terminal": [], "route": [W2], "shared_devices": {}})
 
-# B3: benign lookalike. One onward link; the resting account pays someone two
+# B3: benign lookalike. One onward link; the account where it ends pays someone two
 # hours later from a device an account off the route also uses.
 W3, Q3, Z3 = new_account(), new_account(), new_account()
 db3 = new_device()

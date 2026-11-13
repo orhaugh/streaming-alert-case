@@ -46,7 +46,18 @@ DESCRIPTION = """SQLite database, opened read-only. Times are epoch milliseconds
 - transfers(transfer_id, sender, receiver, amount_minor, event_time_ms, device): every transfer; sender and receiver are account ids; device is the device the transfer was sent from.
 - fan_in_alerts(indicator_id, account, window_start_ms, window_end_ms, senders, transfers, total_minor): fan-in indicators derived by clink: an account that received transfers from at least fan_in_min_senders distinct senders inside one event-time hour.
 - alert_contributions(indicator_id, transfer_id): the transfers that make up each fan-in indicator.
-- onward_links(link_id, credit_transfer_id, debit_transfer_id, account, gap_ms): onward links derived by clink: a credit to an account followed, within onward_max_gap_ms by event time, by a debit from that same account; gap_ms is the time between them."""
+- onward_links(link_id, credit_transfer_id, debit_transfer_id, account, gap_ms): onward links derived by clink: a credit to an account followed, within onward_max_gap_ms by event time, by a debit from that same account; gap_ms is the time between them. A link records timing, not that the same funds moved.
+Each table's first column is its primary key.
+To follow candidate onward-transfer paths in one query, use a recursive common table expression, for example:
+  WITH RECURSIVE path(start_id, transfer_id, links, trail) AS (
+    SELECT transfer_id, transfer_id, 0, transfer_id FROM alert_contributions WHERE indicator_id = '<indicator id>'
+    UNION ALL
+    SELECT path.start_id, onward_links.debit_transfer_id, path.links + 1, path.trail || '>' || onward_links.debit_transfer_id
+    FROM path JOIN onward_links ON onward_links.credit_transfer_id = path.transfer_id
+  )
+  SELECT trail AS path, links, NOT EXISTS (SELECT 1 FROM onward_links WHERE credit_transfer_id = path.transfer_id) AS ends
+  FROM path WHERE links > 0
+links counts the onward links in a path; a path ends at a transfer that is no onward link's credit_transfer_id."""
 
 
 INDEXES = """

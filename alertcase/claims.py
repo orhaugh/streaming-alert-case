@@ -52,7 +52,7 @@ CLAIM_FIELDS: dict[str, dict[str, dict]] = {
         "transfers": _INT, "total_minor": _INT, "contributing": _STR_LIST,
     },
     "onward_path": {
-        "transfers": _STR_LIST, "from_indicator": _nullable(_STR), "comes_to_rest_at": _nullable(_STR),
+        "transfers": _STR_LIST, "from_indicator": _nullable(_STR), "ends_at": _nullable(_STR),
     },
     "onward_reach": {
         "indicator": _STR, "max_depth": _INT, "terminal_accounts": _STR_LIST, "route_accounts": _STR_LIST,
@@ -72,23 +72,23 @@ CLAIM_MEANINGS = {
     "event": "the transfer exists with exactly this sender, receiver, amount, event time and device",
     "indicator": "the fan-in indicator exists with exactly these values; contributing is the complete set of its "
                  "contributing transfers",
-    "onward_path": "each consecutive pair of transfers is a recorded onward link; from_indicator: the first transfer "
-                   "contributes to that indicator; comes_to_rest_at: the last transfer was paid to that account and "
-                   "was not passed on",
-    "onward_reach": "for the indicator: max_depth, the most onward links in a chain, where a chain starts at one of "
-                    "its contributing transfers and follows onward links; terminal_accounts, its resting accounts: for "
-                    "every chain of one or more onward links that ends at a transfer that was not passed on, the "
-                    "account that last transfer paid. A contributing transfer that was not passed on starts no chain "
-                    "and adds no resting account; state it with an absence claim (no_onward_link_from_transfer). "
-                    "route_accounts, the indicator's route accounts: the alerted account and every account paid by an "
-                    "onward transfer in its chains, not the senders of its contributing transfers. Each list is a "
-                    "complete set",
+    "onward_path": "a candidate onward-transfer path: each consecutive pair of transfers is a recorded onward link; "
+                   "from_indicator: the first transfer contributes to that indicator; ends_at: the last transfer "
+                   "paid that account and has no onward link in this dataset",
+    "onward_reach": "for the indicator's candidate onward-transfer paths, each starting at one of its contributing "
+                    "transfers and following onward links: max_depth, the most onward links in a path; "
+                    "terminal_accounts, the accounts where its paths end: for every path of one or more onward links "
+                    "that ends at a transfer with no onward link in this dataset, the account that transfer paid. A "
+                    "contributing transfer with no onward link starts no path and adds no end account; state it with "
+                    "an absence claim (no_onward_link_from_transfer). route_accounts, the indicator's path accounts: "
+                    "the alerted account and every account paid by an onward transfer in its paths, not the senders "
+                    "of its contributing transfers. Each list is a complete set",
     "shared_device": "the device was used to send from every listed account (two or more); on_route_of: the listed "
-                     "accounts are exactly that indicator's route accounts (as in onward_reach) that sent from the "
+                     "accounts are exactly that indicator's path accounts (as in onward_reach) that sent from the "
                      "device",
-    "absence": "no_shared_device_on_route: no device was used to send by two or more of the indicator's route "
-               "accounts (as in onward_reach); no_onward_link_from_transfer: the transfer was not passed on; "
-               "no_fan_in_alert_for_account: the account has no fan-in indicator",
+    "absence": "no_shared_device_on_route: no device was used to send by two or more of the indicator's path "
+               "accounts (as in onward_reach); no_onward_link_from_transfer: the transfer has no onward link in this "
+               "dataset; no_fan_in_alert_for_account: the account has no fan-in indicator",
     "count": "the number of fan-in alerts, transfers, onward links, accounts or devices in the bounded dataset",
 }
 
@@ -129,14 +129,27 @@ OUTPUT_SCHEMA = {
 }
 
 
+# Names an earlier version of the claim types used, and the names that replaced
+# them. Recorded runs keep the names they were made with; the checker reads them
+# under the new names, so they are judged by the same rules.
+LEGACY_FIELDS = {"onward_path": {"comes_to_rest_at": "ends_at"}}
+
+
+def _current_names(kind: str, claim: dict) -> dict:
+    renames = LEGACY_FIELDS.get(kind, {})
+    return {renames.get(k, k): v for k, v in claim.items()}
+
+
 def flatten_claims(claims: Any) -> list:
     """The agent's claims as one list, each with its type. Grouped claims
     ({"event": [...], ...}) gain a "type"; a list is returned as it is."""
     if isinstance(claims, dict):
-        return [{"id": c.get("id"), "type": kind, **{k: v for k, v in c.items() if k != "id"}}
+        return [_current_names(kind, {"id": c.get("id"), "type": kind, **{k: v for k, v in c.items() if k != "id"}})
                 if isinstance(c, dict) else c
                 for kind, group in claims.items() for c in (group if isinstance(group, list) else [group])]
-    return claims if isinstance(claims, list) else []
+    if isinstance(claims, list):
+        return [_current_names(c.get("type"), c) if isinstance(c, dict) else c for c in claims]
+    return []
 
 
 _SECTIONS = {"findings": ("id", "statement", "claim_ids"), "hypotheses": ("id", "statement", "references"),
@@ -258,13 +271,13 @@ def _onward_path(c: dict, f: Facts) -> tuple[bool, str]:
             return False, f"there is no fan-in indicator {c['from_indicator']}"
         if path[0] not in i["transfer_ids"]:
             return False, f"{path[0]} does not contribute to {c['from_indicator']}"
-    if c["comes_to_rest_at"] is not None:
+    if c["ends_at"] is not None:
         last = f.transfers[path[-1]]
-        if last["dst"] != c["comes_to_rest_at"]:
-            return False, f"{path[-1]} was paid to {last['dst']}, not {c['comes_to_rest_at']}"
+        if last["dst"] != c["ends_at"]:
+            return False, f"{path[-1]} was paid to {last['dst']}, not {c['ends_at']}"
         onward = f.links_from(path[-1])
         if onward:
-            return False, f"{path[-1]} was passed on: {sorted(link_id for link_id, link in f.links.items() if link['in_id'] == path[-1])}"
+            return False, f"{path[-1]} has an onward link: {sorted(link_id for link_id, link in f.links.items() if link['in_id'] == path[-1])}"
     return True, f"{len(path) - 1} recorded onward link(s)"
 
 
@@ -318,7 +331,7 @@ def _absence(c: dict, f: Facts) -> tuple[bool, str]:
         if subject not in f.transfers:
             return False, f"{subject} is not a transfer in the dataset"
         onward = sorted(link_id for link_id, link in f.links.items() if link["in_id"] == subject)
-        return (not onward), (f"{subject} was passed on: {onward}" if onward else f"{subject} was not passed on")
+        return (not onward), (f"{subject} has an onward link: {onward}" if onward else f"{subject} has no onward link")
     if c["kind"] == "no_fan_in_alert_for_account":
         if subject not in f.accounts:
             return False, f"{subject} is not an account in the dataset"

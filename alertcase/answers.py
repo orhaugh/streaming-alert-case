@@ -66,9 +66,9 @@ def covered(events: Facts, claims: list, verdicts: list[dict]) -> dict[str, bool
             result[f"alert:{c['indicator']}"] = True
         elif kind == "onward_reach" and c["max_depth"] is not None and c["terminal_accounts"] is not None:
             result[f"reach:{c['indicator']}"] = True
-        elif kind == "onward_path" and c["from_indicator"] is not None and c["comes_to_rest_at"] is not None:
+        elif kind == "onward_path" and c["from_indicator"] is not None and c["ends_at"] is not None:
             inv = events.investigation.get(c["from_indicator"])
-            if inv and len(c["transfers"]) - 1 == inv["onward_depth"] and inv["terminal_accounts"] == [c["comes_to_rest_at"]]:
+            if inv and len(c["transfers"]) - 1 == inv["onward_depth"] and inv["terminal_accounts"] == [c["ends_at"]]:
                 result[f"reach:{c['from_indicator']}"] = True
         elif kind == "shared_device" and c["on_route_of"] is not None:
             result[f"device:{c['on_route_of']}:{c['device']}"] = True

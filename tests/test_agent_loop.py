@@ -103,9 +103,27 @@ class AgentLoopTest(unittest.TestCase):
             self.assertFalse(call["ok"], f"{arm} accepted a write")
 
     def test_the_arms_differ_only_in_the_evidence_they_are_told_about(self) -> None:
-        graph, table = agent.system_prompt("graph"), agent.system_prompt("table")
-        self.assertEqual(graph.replace(agent.ARMS["graph"]["description"], ""),
-                         table.replace(agent.ARMS["table"]["description"], ""))
+        for case in CASES:
+            graph, table = agent.system_prompt("graph", case), agent.system_prompt("table", case)
+            self.assertEqual(graph.replace(agent.evidence_description("graph", case), ""),
+                             table.replace(agent.evidence_description("table", case), ""))
+
+    def test_the_worked_examples_give_both_arms_the_same_paths(self) -> None:
+        import re
+        cypher = re.search(r"  MATCH \(i:Indicator.*?AS ends", agent.GRAPH_DESCRIPTION, re.S).group(0)
+        sql = re.search(r"  WITH RECURSIVE.*?WHERE links > 0", agent.tables.DESCRIPTION, re.S).group(0)
+        graph, table = agent.GraphQueries(CASES["small"].store), agent.TableQueries(CASES["small"].tables)
+        try:
+            for alert in sorted(self.events.indicators):
+                ok_g, rows_g = graph(cypher.replace("<indicator id>", alert))
+                ok_t, rows_t = table(sql.replace("<indicator id>", alert))
+                self.assertTrue(ok_g and ok_t, (rows_g, rows_t))
+                as_set = lambda text, f: sorted(f(r) for r in json.loads(text)["rows"])  # noqa: E731
+                self.assertEqual(as_set(rows_g, lambda r: (">".join(r["path"]), r["links"], bool(r["ends"]))),
+                                 as_set(rows_t, lambda r: (r["path"], r["links"], bool(r["ends"]))))
+        finally:
+            graph.close()
+            table.close()
         def without_language(arm: str) -> str:
             return json.dumps(agent.tool(arm), sort_keys=True).replace(agent.ARMS[arm]["language"], "LANGUAGE")
         self.assertEqual(without_language("graph"), without_language("table"))

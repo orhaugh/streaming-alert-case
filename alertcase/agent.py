@@ -100,20 +100,36 @@ GRAPH_DESCRIPTION = """Relate graph store, opened read-only; query it in Cypher.
 - (:Transfer)-[:FROM_DEVICE]->(:Device {id}): the device each transfer was sent from.
 - (:Indicator {id, kind: 'fan_in', window_start, window_end, senders, transfers, total_minor})-[:ABOUT]->(:Account): fan-in indicators derived by clink: an account that received transfers from at least fan_in_min_senders distinct senders inside one event-time hour.
 - (:Indicator)-[:CONTRIBUTING]->(:Transfer): the transfers that make up each fan-in indicator.
-- (:Transfer)-[:PASSED_ON {id, gap_ms}]->(:Transfer): onward links derived by clink: a credit to an account followed, within onward_max_gap_ms by event time, by a debit from that same account; gap_ms is the time between them."""
+- (:Transfer)-[:PASSED_ON {id, gap_ms}]->(:Transfer): onward links derived by clink: a credit to an account followed, within onward_max_gap_ms by event time, by a debit from that same account; gap_ms is the time between them. The name is the pipeline's: a link records timing, not that the same funds moved.
+Each node's id is unique, under a constraint.
+To follow candidate onward-transfer paths in one query, use a variable-length pattern, for example:
+  MATCH (i:Indicator {id: '<indicator id>'})-[:CONTRIBUTING]->(c:Transfer)
+  MATCH p = (c)-[:PASSED_ON*1..10]->(t:Transfer)
+  RETURN [n IN nodes(p) | n.id] AS path, length(p) AS links, NOT (t)-[:PASSED_ON]->() AS ends
+links counts the onward links in a path; a path ends at a transfer with no PASSED_ON link out of it."""
 
 ARMS = {
     "graph": {"language": "Cypher", "description": GRAPH_DESCRIPTION},
     "table": {"language": "SQLite SQL", "description": tables.DESCRIPTION},
 }
 
+
+def evidence_description(arm: str, case: str = "small") -> str:
+    """What an arm is told about its evidence. The large case's tables carry
+    indexes, and the table arm is told so there."""
+    description = ARMS[arm]["description"]
+    if arm == "table" and CASES[case].table_indexes:
+        description += "\nEvery id column the tables join on is indexed."
+    return description
+
 SYSTEM = """You assist a fraud analyst. You examine the fan-in alerts that stream processing raised over one bounded replay of a synthetic event file, using one read-only query tool over the evidence, and you write a case note.
 
 Ground rules:
 - Conclusions hold only for this bounded dataset, as processed by the run it records. Say nothing about events outside it, and do not assume the data is complete beyond what the run record states.
 - A recorded relationship (a transfer, an onward link, a device used by several accounts) is not proof of fraud, ownership, identity or causation. Anything beyond what is recorded is a hypothesis at most.
+- An onward link records timing only: a debit from an account within 30 minutes after a credit to it, by event time. It is a candidate onward transfer, not evidence that the same funds moved. A path of onward links ends where no further qualifying transfer exists in this dataset, which is not a real-world resting point. Describe paths in those terms, never as money moving, being passed on or coming to rest.
 - When you describe how a conclusion can be traced back to the events, call it traceable provenance, never a chain of custody.
-- Findings are facts. Every finding cites the ids of the claims that support it. A claim is a structured statement of one of the types below, using the dataset's own ids: transfers (T0001), accounts (A-1234), devices (D-123), fan-in indicators (fan_in:A-1234:<window start in ms>), onward links (onward:T0001:T0002). Claim only what your queries showed.
+- Findings are facts. Every finding cites the ids of the claims that support it. A claim is a structured statement of one of the types below, using the dataset's own ids, for example transfers T0001, accounts A-1234, devices D-123, fan-in indicators fan_in:A-1234:<window start in ms>, onward links onward:T0001:T0002. Claim only what your queries showed.
 - Hypotheses are interpretations the data does not establish. Unresolved questions are what the data cannot answer.
 - Your claims are checked automatically against the original events and the stored evidence. A claim that does not hold counts against the case note.
 
@@ -127,8 +143,8 @@ You can make at most {max_tool_calls} queries. When you have what you need, call
 
 TASK = """Investigate every fan-in alert in this bounded replay.
 1. For each alert: the account, the event-time window, the number of distinct senders and of transfers, the total, and the contributing transfers.
-2. For each alert, follow the onward links from its contributing transfers: how many onward links at most, along which route, and the account or accounts where the money comes to rest.
-3. For each alert, which accounts on its routes sent transfers from a device that another account on those routes also used?
+2. For each alert, follow the candidate onward-transfer paths that start at its contributing transfers: the most onward links in a path, the accounts along the paths, and the account or accounts where the paths end, with no further qualifying transfer in this dataset.
+3. For each alert, which accounts on its paths sent transfers from a device that another account on those paths also used?
 4. The alerts may look alike as indicators. Say exactly which recorded relationships distinguish them, and how that changes the interpretation.
 Keep findings, hypotheses and unresolved questions apart."""
 
@@ -151,9 +167,10 @@ def missing_credentials(provider: str) -> str | None:
     return None if config.is_dir() else NO_CREDENTIALS
 
 
-def system_prompt(arm: str) -> str:
+def system_prompt(arm: str, case: str = "small") -> str:
     claim_types = "\n".join(f"- {kind}: {meaning}" for kind, meaning in CLAIM_MEANINGS.items())
-    return SYSTEM.format(description=ARMS[arm]["description"], claim_types=claim_types, max_tool_calls=MAX_TOOL_CALLS)
+    return SYSTEM.format(description=evidence_description(arm, case), claim_types=claim_types,
+                         max_tool_calls=MAX_TOOL_CALLS)
 
 
 def tool(arm: str) -> dict:
@@ -346,7 +363,7 @@ def smoke(arm: str, provider: str, case: str = "small", client: Any = None) -> d
     that it accepts the request's tools, output format, effort and caching.
     Writes nothing, and runs no query."""
     client = client or make_client(provider)
-    response = send(client, provider, system_prompt(arm), tools_for(arm), [{"role": "user", "content": TASK}],
+    response = send(client, provider, system_prompt(arm, case), tools_for(arm), [{"role": "user", "content": TASK}],
                     CASES[case].max_tokens)
     usage = response.usage
     return {"provider": provider, "model_requested": model_for(provider), "model_served": response.model,
@@ -364,11 +381,11 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
     dataset = CASES[case]
     dataset.unpack()
     execute = GraphQueries(dataset.store) if arm == "graph" else TableQueries(dataset.tables)
-    system, tools = system_prompt(arm), tools_for(arm)
+    system, tools = system_prompt(arm, case), tools_for(arm)
     messages: list[dict] = [{"role": "user", "content": TASK}]
     transcript: list[dict] = []
     totals = {"input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
-    tool_calls = tool_errors = requests = 0
+    tool_calls = tool_errors = requests = truncated = stopped = 0
     served: list[str] = []
     fallback_used = reminded = False
     status, output, stop_reason = "error", None, None
@@ -428,6 +445,8 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
                         began = time.monotonic()
                         ok, text = execute(query)
                         tool_errors += not ok
+                        stopped += text == TOO_LONG
+                        truncated += (ok and json.loads(text).get("truncated", False)) or "characters, over the" in text
                         transcript.append({"tool_call": tool_calls, "purpose": purpose, "query": query, "ok": ok,
                                            "result": text, "seconds": round(time.monotonic() - began, 3)})
                         log(f"    query {tool_calls} ({'ok' if ok else 'error'}): {purpose[:90]}")
@@ -473,7 +492,8 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
         "budgets": {"max_tool_calls": MAX_TOOL_CALLS, "max_requests": MAX_REQUESTS,
                     "max_tokens_per_response": dataset.max_tokens, "row_limit": ROW_LIMIT, "result_chars": RESULT_CHARS,
                     "query_seconds": QUERY_SECONDS},
-        "effort": {"tool_calls": tool_calls, "tool_errors": tool_errors, "requests": requests,
+        "effort": {"tool_calls": tool_calls, "tool_errors": tool_errors, "truncated_results": truncated,
+                   "stopped_queries": stopped, "requests": requests,
                    "wall_seconds": round(time.monotonic() - clock, 1), **totals},
         "started": started.isoformat(timespec="seconds"),
         "versions": {"anthropic": anthropic.__version__, "relate-db": relate.__version__,

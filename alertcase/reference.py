@@ -90,8 +90,9 @@ def onward_in_arrival_order(events: list[dict]) -> list[dict]:
 
 
 def investigate(events: list[dict], indicators: list[dict], pairs: list[dict]) -> list[dict]:
-    """For each fan-in indicator: how far its money was passed on, where it
-    came to rest, which accounts it went through, and which of those accounts
+    """For each fan-in indicator, over the candidate onward-transfer paths that
+    start at its contributing transfers: the most onward links in a path, the
+    accounts where the paths end, the accounts along them, and which of those accounts
     sent transfers from a device another of them also used."""
     by_id = {e["transfer_id"]: e for e in events}
     following: dict[str, list[str]] = defaultdict(list)

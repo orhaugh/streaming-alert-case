@@ -87,7 +87,7 @@ def check_store(graph: Graph, events_path: Path, scenario_path: Path, record) ->
 
     # 7. The relationship questions, answered by Cypher.
     equal("relationship queries", graph.investigation(), want_investigation,
-          "onward depth, resting accounts, route accounts and shared devices equal the reference for every indicator")
+          "onward depth, path end accounts, path accounts and shared devices equal the reference for every indicator")
 
     # 8 and 9 compare the reference with what the scenario was designed to
     # contain; the large case's scenario lists its alerts.

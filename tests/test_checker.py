@@ -12,7 +12,7 @@ import unittest
 from pathlib import Path
 
 from alertcase import answers, facts
-from alertcase.claims import check_claims, references_in, resolves
+from alertcase.claims import check_claims, flatten_claims, references_in, resolves
 from alertcase.graph import Graph
 
 SUSPECT = "fan_in:A-9278:1794301200000"
@@ -42,9 +42,18 @@ class CheckerTest(unittest.TestCase):
 
     def test_a_route_claim_is_judged_link_by_link(self) -> None:
         path = {"id": "C1", "type": "onward_path", "transfers": ["T0002", "T0007", "T0008", "T0009"],
-                "from_indicator": SUSPECT, "comes_to_rest_at": "A-4989"}
+                "from_indicator": SUSPECT, "ends_at": "A-4989"}
         broken = {**path, "id": "C2", "transfers": ["T0002", "T0008", "T0009"]}
         self.assertEqual([v["status"] for v in self.verdicts(path, broken)], ["supported", "unsupported"])
+
+    def test_a_recorded_claim_with_an_earlier_field_name_is_judged_by_the_same_rule(self) -> None:
+        current = {"id": "C1", "type": "onward_path", "transfers": ["T0002", "T0007"],
+                   "from_indicator": SUSPECT, "ends_at": "A-5092"}
+        earlier = {k if k != "ends_at" else "comes_to_rest_at": v for k, v in current.items()}
+        grouped = {"onward_path": [{k: v for k, v in earlier.items() if k != "type"}]}
+        for claims in ([current], [earlier], flatten_claims(grouped)):
+            flat = flatten_claims(claims)
+            self.assertEqual(self.verdicts(*flat)[0]["status"], "unsupported", flat)
 
     def test_a_shared_device_claim_must_name_every_route_account_that_used_it(self) -> None:
         complete = {"id": "C1", "type": "shared_device", "device": "D-568",

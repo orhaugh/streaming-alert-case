@@ -9,9 +9,11 @@ For each bounded dataset (the small case, and the same pipeline at scale):
   3. the tables: the SQLite tables the table-based agent reads hold the same
      records as the store.
 Then every recorded agent run: its claims are checked again against its
-dataset's store and events, and its verdicts and scores must equal the ones
-recorded beside it; each comparison's summary must equal the one computed
-again from its runs.
+dataset's store and events, and each claim's verdict and every score recorded
+beside the run must equal the ones computed again; each comparison's summary
+must equal the one computed again from its runs. A recording keeps the words
+its checker gave as reasons, and the metrics of its time: what is compared is
+each verdict, and every number the recording holds.
 
 Exit status 0 only when every check passes. What it checks is structured:
 records, values, references and query results. It does not judge prose.
@@ -84,6 +86,20 @@ def check_case(case: Case, report: Report) -> tuple[facts.Facts, facts.Facts] | 
     return events, graph_facts
 
 
+def agrees(recorded, again) -> bool:
+    """Every value the recording holds equals the one computed again. A metric
+    added after the recording was made has nothing to compare against."""
+    if isinstance(recorded, dict):
+        return isinstance(again, dict) and all(k in again and agrees(v, again[k]) for k, v in recorded.items())
+    if isinstance(recorded, list):
+        return isinstance(again, list) and len(recorded) == len(again) and all(map(agrees, recorded, again))
+    return recorded == again
+
+
+def verdicts(checked: list[dict]) -> list[tuple]:
+    return [(v["claim"], v["type"], v["status"]) for v in checked]
+
+
 def check_runs(root: Path, title: str, sources: dict, report: Report) -> None:
     report.section(f"{title}, {root}")
     runs = sorted(p.parent for p in root.glob("**/meta.json"))
@@ -105,14 +121,14 @@ def check_runs(root: Path, title: str, sources: dict, report: Report) -> None:
         recorded_check = json.loads((run / "check.json").read_text())
         recorded_score = json.loads((run / "score.json").read_text())
         rescored = score(output, events, graph_facts, meta["effort"])
-        same = again == recorded_check and rescored == recorded_score
+        same = verdicts(again) == verdicts(recorded_check) and agrees(recorded_score, rescored)
         report.record(name, same,
                       f"{case} case, {meta['arm']} arm, {meta['status']}: correctness {rescored['correctness']:.2f}, "
                       f"{rescored['supported']} of {rescored['claims']} claims supported, reference validity "
-                      f"{rescored['reference_validity']}; verdicts and scores equal the recorded ones"
+                      f"{rescored['reference_validity']}; every verdict and recorded score equal"
                       if same else "the verdicts or scores differ from the ones recorded beside the run")
     for summary_path in sorted(root.glob("**/summary.json")):
-        same = summarise(summary_path.parent) == json.loads(summary_path.read_text())
+        same = agrees(json.loads(summary_path.read_text()), summarise(summary_path.parent))
         report.record(str(summary_path.relative_to(root)), same,
                       "the comparison's summary equals the one computed again from its runs' scores"
                       if same else "the summary differs from the one computed from its runs' scores")
@@ -124,6 +140,8 @@ def main() -> int:
     parser.add_argument("--runs", type=Path, default=Path("runs/recorded"))
     parser.add_argument("--superseded", type=Path, default=Path("runs/superseded"),
                         help="recorded runs kept for the record, made with an earlier version of the prompt")
+    parser.add_argument("--shakedown", type=Path, default=Path("runs/shakedown"),
+                        help="live runs that checked the harness before recording; part of no result")
     args = parser.parse_args()
 
     report = Report()
@@ -132,6 +150,8 @@ def main() -> int:
     check_runs(args.runs, "Recorded agent runs", sources, report)
     if args.superseded.exists():
         check_runs(args.superseded, "Superseded agent runs", sources, report)
+    if args.shakedown.exists():
+        check_runs(args.shakedown, "Shakedown runs, live and part of no result", sources, report)
 
     passed = sum(report.results)
     print(f"\n{passed} of {len(report.results)} checks passed")
