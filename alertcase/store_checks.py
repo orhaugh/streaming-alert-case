@@ -89,6 +89,12 @@ def check_store(graph: Graph, events_path: Path, scenario_path: Path, record) ->
     equal("relationship queries", graph.investigation(), want_investigation,
           "onward depth, resting accounts, route accounts and shared devices equal the reference for every indicator")
 
+    # 8 and 9 compare the reference with what the scenario was designed to
+    # contain; the large case's scenario lists its alerts.
+    if json.loads(scenario_path.read_text()).get("format") == "cases":
+        _designed_cases(events, want_indicators, want_pairs, want_investigation, designed, record)
+        return
+
     # 8. The reference agrees with what the scenario was designed to contain.
     by_account = {r["account"]: r for r in want_investigation}
     senders_of = {i["account"]: sorted({e["src"] for e in events if e["transfer_id"] in i["transfer_ids"]})
@@ -122,3 +128,46 @@ def check_store(graph: Graph, events_path: Path, scenario_path: Path, record) ->
     record("order matters", lost_pairs == {forwarding} and lost_credits == {inversions["window_boundary"]["credit"]},
            f"taken in arrival order, a lookup misses {forwarding} and a window with no allowance loses "
            f"{inversions['window_boundary']['credit']}; the store holds both")
+
+
+def _designed_cases(events, want_indicators, want_pairs, want_investigation, designed, record) -> None:
+    """Checks 8 and 9 for a scenario that lists its alerts (the large case)."""
+    by_account = {r["account"]: r for r in want_investigation}
+    senders_of = {i["account"]: sorted({e["src"] for e in events if e["transfer_id"] in i["transfer_ids"]})
+                  for i in want_indicators}
+    alerts = designed["alerts"]
+    as_designed = set(by_account) == {a["account"] for a in alerts}
+    for plan in alerts:
+        found = by_account.get(plan["account"])
+        as_designed = as_designed and found is not None and (
+            found["indicator"] == f"fan_in:{plan['account']}:{plan['window_start']}"
+            and senders_of[plan["account"]] == plan["senders"]
+            and found["onward_depth"] == plan["onward_depth"]
+            and found["route_accounts"] == plan["route"]
+            and found["terminal_accounts"] == plan["terminal"]
+            and found["shared_devices"] == plan["shared_devices"])
+    decoys = designed["decoys"]
+    chain = set(decoys["chain"]["accounts"])
+    chain_links = sum(1 for p in want_pairs if p["account"] in chain)
+    off_route = all(account not in r["shared_devices"].get(device, [])
+                    for device, account in decoys["devices_used_off_route"].items() for r in want_investigation)
+    on_no_route = all(not chain & set(r["route_accounts"]) for r in want_investigation)
+    as_designed = as_designed and chain_links == decoys["chain"]["onward_links"] and off_route and on_no_route
+    labels = [a["label"] for a in alerts]
+    record("designed scenario", as_designed,
+           f"{len(alerts)} alerts and no others ({labels.count('suspicious')} designed as suspicious, "
+           f"{labels.count('benign')} as benign lookalikes); routes, depths and shared devices as designed; the "
+           f"{chain_links}-link decoy chain is on no route, and devices also used off a route are listed only for "
+           "the route accounts that used them")
+
+    inversions = designed["inversions"]
+    lost_pairs = {p["id"] for p in want_pairs} - {p["id"] for p in reference.onward_in_arrival_order(events)}
+    forwarding = f"onward:{inversions['forwarding']['credit']}:{inversions['forwarding']['debit_arrives_first']}"
+    strict = {i["account"]: i for i in reference.fan_in_without_tolerance(events)}
+    full = {i["account"]: i for i in want_indicators}
+    account = inversions["window_boundary"]["account"]
+    lost_credits = set(full[account]["transfer_ids"]) - set(strict[account]["transfer_ids"]) if account in strict else None
+    record("order matters", forwarding in lost_pairs and lost_credits == {inversions["window_boundary"]["credit"]},
+           f"taken in arrival order, a lookup misses {len(lost_pairs)} of {len(want_pairs)} onward links, "
+           f"{forwarding} among them, and a window with no allowance loses {inversions['window_boundary']['credit']}; "
+           "the store holds them all")

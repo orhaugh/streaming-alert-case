@@ -1,0 +1,199 @@
+{
+ "format": "cases",
+ "seed": 20261116,
+ "transfers": 50000,
+ "designed": {
+  "alerts": [
+   {
+    "label": "suspicious",
+    "account": "A-37573",
+    "window_start": 1794823200000,
+    "senders": [
+     "A-11724",
+     "A-34750",
+     "A-52167",
+     "A-76091",
+     "A-76313",
+     "A-85326",
+     "A-94815"
+    ],
+    "onward_depth": 4,
+    "terminal": [
+     "A-54215"
+    ],
+    "route": [
+     "A-37573",
+     "A-38045",
+     "A-54215",
+     "A-63022",
+     "A-93288"
+    ],
+    "shared_devices": {
+     "D-45880": [
+      "A-37573",
+      "A-38045",
+      "A-63022",
+      "A-93288"
+     ]
+    }
+   },
+   {
+    "label": "suspicious",
+    "account": "A-10859",
+    "window_start": 1794924000000,
+    "senders": [
+     "A-42108",
+     "A-57720",
+     "A-67293",
+     "A-75834",
+     "A-78288",
+     "A-83856"
+    ],
+    "onward_depth": 3,
+    "terminal": [
+     "A-85287",
+     "A-92332"
+    ],
+    "route": [
+     "A-10859",
+     "A-75793",
+     "A-78340",
+     "A-85287",
+     "A-92332"
+    ],
+    "shared_devices": {
+     "D-79802": [
+      "A-10859",
+      "A-78340"
+     ]
+    }
+   },
+   {
+    "label": "suspicious",
+    "account": "A-83577",
+    "window_start": 1795057200000,
+    "senders": [
+     "A-26066",
+     "A-36849",
+     "A-62838",
+     "A-66977",
+     "A-69964",
+     "A-71095",
+     "A-85076",
+     "A-94279"
+    ],
+    "onward_depth": 5,
+    "terminal": [
+     "A-39382"
+    ],
+    "route": [
+     "A-14799",
+     "A-39382",
+     "A-43725",
+     "A-56768",
+     "A-83094",
+     "A-83577"
+    ],
+    "shared_devices": {
+     "D-40018": [
+      "A-14799",
+      "A-83094"
+     ]
+    }
+   },
+   {
+    "label": "benign",
+    "account": "A-85921",
+    "window_start": 1794855600000,
+    "senders": [
+     "A-10868",
+     "A-30679",
+     "A-35236",
+     "A-37924",
+     "A-61843",
+     "A-73681"
+    ],
+    "onward_depth": 1,
+    "terminal": [
+     "A-10758"
+    ],
+    "route": [
+     "A-10758",
+     "A-85921"
+    ],
+    "shared_devices": {}
+   },
+   {
+    "label": "benign",
+    "account": "A-28137",
+    "window_start": 1795003200000,
+    "senders": [
+     "A-25100",
+     "A-31752",
+     "A-40980",
+     "A-42687",
+     "A-61482",
+     "A-79951",
+     "A-81834"
+    ],
+    "onward_depth": 0,
+    "terminal": [],
+    "route": [
+     "A-28137"
+    ],
+    "shared_devices": {}
+   },
+   {
+    "label": "benign",
+    "account": "A-20636",
+    "window_start": 1795190400000,
+    "senders": [
+     "A-10442",
+     "A-25683",
+     "A-37471",
+     "A-64723",
+     "A-75147",
+     "A-92314"
+    ],
+    "onward_depth": 1,
+    "terminal": [
+     "A-36729"
+    ],
+    "route": [
+     "A-20636",
+     "A-36729"
+    ],
+    "shared_devices": {}
+   }
+  ],
+  "decoys": {
+   "chain": {
+    "accounts": [
+     "A-91733",
+     "A-51506",
+     "A-48067",
+     "A-92065",
+     "A-65477",
+     "A-41990",
+     "A-61021"
+    ],
+    "device": "D-85231",
+    "onward_links": 6
+   },
+   "devices_used_off_route": {
+    "D-40018": "A-34114",
+    "D-30793": "A-69026"
+   }
+  },
+  "inversions": {
+   "window_boundary": {
+    "credit": "T003319",
+    "account": "A-37573"
+   },
+   "forwarding": {
+    "credit": "T003182",
+    "debit_arrives_first": "T003201"
+   }
+  }
+ }
+}

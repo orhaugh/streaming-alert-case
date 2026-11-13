@@ -49,7 +49,21 @@ DESCRIPTION = """SQLite database, opened read-only. Times are epoch milliseconds
 - onward_links(link_id, credit_transfer_id, debit_transfer_id, account, gap_ms): onward links derived by clink: a credit to an account followed, within onward_max_gap_ms by event time, by a debit from that same account; gap_ms is the time between them."""
 
 
-def export(graph: Graph, path: Path = TABLES) -> Path:
+INDEXES = """
+CREATE INDEX transfers_sender ON transfers(sender);
+CREATE INDEX transfers_receiver ON transfers(receiver);
+CREATE INDEX transfers_device ON transfers(device);
+CREATE INDEX alerts_account ON fan_in_alerts(account);
+CREATE INDEX contributions_transfer ON alert_contributions(transfer_id);
+CREATE INDEX links_credit ON onward_links(credit_transfer_id);
+CREATE INDEX links_debit ON onward_links(debit_transfer_id);
+CREATE INDEX links_account ON onward_links(account);
+"""
+
+
+def export(graph: Graph, path: Path = TABLES, indexes: bool = False) -> Path:
+    """indexes: an index on every id the tables join on, as the Relate store
+    keeps uniqueness constraints on its ids. The large case uses them."""
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.exists():
         path.unlink()
@@ -72,6 +86,8 @@ def export(graph: Graph, path: Path = TABLES) -> Path:
             db.executemany("INSERT INTO alert_contributions VALUES (?,?)", [(i["id"], t) for t in i["transfer_ids"]])
         db.executemany("INSERT INTO onward_links VALUES (?,?,?,?,?)", [
             (p["id"], p["in_id"], p["out_id"], p["account"], p["gap_ms"]) for p in graph.onward_links()])
+        if indexes:
+            db.executescript(INDEXES)
         db.commit()
     finally:
         db.close()

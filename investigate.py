@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from alertcase import agent, facts
+from alertcase.cases import CASES
 from alertcase.graph import Graph
 from alertcase.recording import record
 
@@ -27,6 +28,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--arm", choices=sorted(agent.ARMS), default="graph",
                         help="graph: Cypher over the Relate store (default); table: SQL over the same records")
+    parser.add_argument("--case", choices=sorted(CASES), default="small",
+                        help="small: the 55-transfer case (default); large: 50,000 transfers")
     parser.add_argument("--provider", choices=agent.PROVIDERS, default="anthropic",
                         help="anthropic: the Claude API (default); bedrock: Amazon Bedrock")
     parser.add_argument("--record", metavar="NAME", help="write runs/recorded/NAME instead of a live run directory")
@@ -38,7 +41,7 @@ def main() -> int:
         raise SystemExit(problem)
     if args.smoke:
         try:
-            print(json.dumps(agent.smoke(args.arm, args.provider), indent=2))
+            print(json.dumps(agent.smoke(args.arm, args.provider, args.case), indent=2))
         except Exception as error:
             if not agent.provider_error(error):
                 raise
@@ -48,17 +51,19 @@ def main() -> int:
     if args.record:
         directory = Path("runs/recorded") / args.record
     else:
-        directory = Path("runs/live") / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{args.arm}"
+        directory = Path("runs/live") / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{args.case}-{args.arm}"
     if directory.exists():
         raise SystemExit(f"refused     {directory} exists")
-    events = facts.from_events()
-    with Graph() as graph:
+    case = CASES[args.case]
+    case.unpack()
+    events = facts.from_events(case.events)
+    with Graph(case.store) as graph:
         graph_facts = facts.from_graph(graph)
-    print(f"{'recorded' if args.record else 'live'} run, {args.arm} arm, {args.provider}, "
+    print(f"{'recorded' if args.record else 'live'} run, {args.case} case, {args.arm} arm, {args.provider}, "
           f"model {agent.model_for(args.provider)}, effort {agent.EFFORT}")
-    result = agent.run(args.arm, provider=args.provider)
+    result = agent.run(args.arm, provider=args.provider, case=args.case)
     scored = record(result, directory, recorded=bool(args.record), events=events, graph=graph_facts,
-                    title="Case note: fan-in alerts in a bounded replay")
+                    title=f"Case note: fan-in alerts in a bounded replay ({args.case} case)")
     print(f"{result.status}: correctness {scored['correctness']:.2f}, {scored['supported']} of {scored['claims']} "
           f"claims supported, reference validity {scored['reference_validity']}")
     print(f"wrote       {directory}/case_note.md")

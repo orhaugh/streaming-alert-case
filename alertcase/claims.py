@@ -369,15 +369,15 @@ def check_claims(claims: list, events: Facts, graph: Facts) -> list[dict]:
 # Validating that a reference resolves says nothing about the sentence around it.
 
 _COMPOUND = [
-    ("path", re.compile(r"\bpath:T\d{4}(?:>T\d{4})+")),
-    ("indicator", re.compile(r"\bfan_in:A-\d{4}:\d{13}\b")),
-    ("link", re.compile(r"\bonward:T\d{4}:T\d{4}\b")),
+    ("path", re.compile(r"\bpath:T\d{4,}(?:>T\d{4,})+")),
+    ("indicator", re.compile(r"\bfan_in:A-\d{4,}:\d{13}\b")),
+    ("link", re.compile(r"\bonward:T\d{4,}:T\d{4,}\b")),
     ("run", re.compile(r"\brun:[0-9a-f]{12}\b")),
 ]
 _SIMPLE = [
-    ("transfer", re.compile(r"\bT\d{4}\b")),
-    ("account", re.compile(r"\bA-\d{4}\b")),
-    ("device", re.compile(r"\bD-\d{3}\b")),
+    ("transfer", re.compile(r"\bT\d{4,}\b")),
+    ("account", re.compile(r"\bA-\d{4,}\b")),
+    ("device", re.compile(r"\bD-\d{3,}\b")),
 ]
 
 

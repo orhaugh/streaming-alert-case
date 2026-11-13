@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from alertcase import agent, facts
+from alertcase.cases import CASES
 from alertcase.comparison import summarise
 from alertcase.graph import Graph
 from alertcase.recording import record
@@ -29,30 +30,34 @@ from alertcase.recording import record
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--runs", type=int, default=3, help="runs per arm (default 3)")
+    parser.add_argument("--case", choices=sorted(CASES), default="small",
+                        help="small: the 55-transfer case (default); large: 50,000 transfers")
     parser.add_argument("--provider", choices=agent.PROVIDERS, default="anthropic",
                         help="anthropic: the Claude API (default); bedrock: Amazon Bedrock. Both arms use the same one.")
     parser.add_argument("--record", metavar="NAME", help="write runs/recorded/NAME instead of a live directory")
     args = parser.parse_args()
 
     root = (Path("runs/recorded") / args.record if args.record
-            else Path("runs/live") / f"comparison-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
+            else Path("runs/live") / f"comparison-{args.case}-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}")
     if root.exists():
         raise SystemExit(f"refused     {root} exists")
     problem = agent.missing_credentials(args.provider)
     if problem:
         raise SystemExit(problem)
-    events = facts.from_events()
-    with Graph() as graph:
+    case = CASES[args.case]
+    case.unpack()
+    events = facts.from_events(case.events)
+    with Graph(case.store) as graph:
         graph_facts = facts.from_graph(graph)
-    print(f"{args.runs} run(s) per arm, {args.provider}, model {agent.model_for(args.provider)}, "
+    print(f"{args.case} case, {args.runs} run(s) per arm, {args.provider}, model {agent.model_for(args.provider)}, "
           f"effort {agent.EFFORT}, writing {root}")
     for n in range(1, args.runs + 1):
         order = ("graph", "table") if n % 2 else ("table", "graph")
         for arm in order:
             print(f"{arm} {n}")
-            result = agent.run(arm, provider=args.provider)
+            result = agent.run(arm, provider=args.provider, case=args.case)
             scored = record(result, root / f"{arm}-{n}", recorded=bool(args.record), events=events,
-                            graph=graph_facts, title=f"Case note: {arm} arm, run {n}")
+                            graph=graph_facts, title=f"Case note: {args.case} case, {arm} arm, run {n}")
             print(f"  {result.status}: correctness {scored['correctness']:.2f}, {scored['unsupported']} claim(s) not "
                   f"supported, reference validity {scored['reference_validity']}")
     summary = summarise(root)

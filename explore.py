@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from alertcase import reference, tables
+from alertcase.cases import CASES
 from alertcase.events import load_events
 from alertcase.graph import Graph
 
@@ -31,8 +32,12 @@ def clock(ms: int) -> str:
 
 def investigation(graph: Graph, events_path: Path, scenario_path: Path) -> None:
     designed = json.loads(scenario_path.read_text())["designed"]
-    labels = {designed["suspicious"]["account"]: "designed as suspicious",
-              designed["benign"]["account"]: "designed as the benign lookalike"}
+    if "alerts" in designed:  # the large case lists its alerts
+        labels = {a["account"]: f"designed as {'suspicious' if a['label'] == 'suspicious' else 'a benign lookalike'}"
+                  for a in designed["alerts"]}
+    else:
+        labels = {designed["suspicious"]["account"]: "designed as suspicious",
+                  designed["benign"]["account"]: "designed as the benign lookalike"}
     run = graph.run_records()[0]["run"]
     transfers = {t["transfer_id"]: t for t in graph.transfers()}
     indicators = graph.indicators()
@@ -74,6 +79,18 @@ def investigation(graph: Graph, events_path: Path, scenario_path: Path) -> None:
         else:
             print("  device     no device is shared between accounts on this alert's routes")
 
+    if len(indicators) != 2:
+        print("\nTHE ALERTS SIDE BY SIDE")
+        print(f"  {'account':<10} {'label':<34} {'senders':>7} {'total':>12}  {'depth':>5}  {'came to rest at':<22} shared on route")
+        for i in indicators:
+            f = found[i["id"]]
+            shared = "; ".join(f"{d} ({len(acc)})" for d, acc in f["shared_devices"].items()) or "none"
+            print(f"  {i['account']:<10} {labels.get(i['account'], 'not designed'):<34} {i['senders']:>7} "
+                  f"{money(i['total_minor']):>12}  {f['onward_depth']:>5}  {', '.join(f['terminal_accounts']) or '-':<22} {shared}")
+        print("  Every alert fires on the same rule. The relationships, read from Relate, are what separate them.")
+        event_time_kept(designed, events_path, transfers)
+        return
+
     a, b = indicators
     fa, fb = found[a["id"]], found[b["id"]]
     rows = [
@@ -97,35 +114,43 @@ def investigation(graph: Graph, events_path: Path, scenario_path: Path) -> None:
           " and in the relationships: how far the money went, where it came to rest, and a device shared along"
           " the way.")
 
+    event_time_kept(designed, events_path, transfers)
+
+
+def event_time_kept(designed: dict, events_path: Path, transfers: dict) -> None:
     events = load_events(events_path)
     full = {i["account"]: i for i in reference.fan_in(events)}
     strict = {i["account"]: i for i in reference.fan_in_without_tolerance(events)}
-    lost_links = sorted({p["id"] for p in reference.onward(events)} - {p["id"] for p in reference.onward_in_arrival_order(events)})
+    all_links = {p["id"] for p in reference.onward(events)}
+    lost_links = sorted(all_links - {p["id"] for p in reference.onward_in_arrival_order(events)})
     inv = designed["inversions"]
     print("\nWHAT EVENT TIME KEPT")
-    suspect = designed["suspicious"]["account"]
     late = inv["window_boundary"]
-    print(f"  {late['credit']} arrived after {late['arrives_after']}, which belongs to the next hour. With no allowance for "
-          f"late events the window closes first: {strict[suspect]['senders']} senders and "
-          f"{money(strict[suspect]['total_minor'])}, instead of {full[suspect]['senders']} and "
-          f"{money(full[suspect]['total_minor'])}.")
+    suspect = late.get("account") or designed["suspicious"]["account"]
+    after = f" after {late['arrives_after']}, which belongs to the next hour" if "arrives_after" in late else \
+        " after events from the next hour"
+    print(f"  {late['credit']} arrived{after}. With no allowance for late events the window closes first: "
+          f"{strict[suspect]['senders']} senders and {money(strict[suspect]['total_minor'])}, instead of "
+          f"{full[suspect]['senders']} and {money(full[suspect]['total_minor'])}.")
     fwd = inv["forwarding"]
+    missed = ", ".join(lost_links) if len(lost_links) <= 3 else f"{len(lost_links)} of {len(all_links)} onward links"
     print(f"  {fwd['debit_arrives_first']} (the debit) arrived before {fwd['credit']} (the credit it passes on). A lookup made "
-          f"as events arrive misses {', '.join(lost_links)} and reports {transfers[fwd['credit']]['dst']} as a resting point.")
+          f"as events arrive misses {missed} and reports {transfers[fwd['credit']]['dst']} as a resting point.")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--store", type=Path, default=Path("store/case.rl"))
-    parser.add_argument("--events", type=Path, default=Path("data/events.ndjson"))
-    parser.add_argument("--scenario", type=Path, default=Path("data/scenario.json"))
+    parser.add_argument("--case", choices=sorted(CASES), default="small",
+                        help="small: the 55-transfer case (default); large: 50,000 transfers")
     query = parser.add_mutually_exclusive_group()
     query.add_argument("--cypher", help="a read-only Cypher query against the store")
     query.add_argument("--sql", help="a read-only SQL query against tables/case.sqlite")
     args = parser.parse_args()
+    case = CASES[args.case]
+    case.unpack()
 
     if args.sql:
-        db = tables.connect_read_only()
+        db = tables.connect_read_only(case.tables)
         try:
             cursor = db.execute(args.sql)
             names = [d[0] for d in cursor.description or []]
@@ -137,7 +162,7 @@ def main() -> int:
         finally:
             db.close()
         return 0
-    with Graph(args.store) as graph:
+    with Graph(case.store) as graph:
         if args.cypher:
             try:
                 for row in graph.rows(args.cypher):
@@ -146,7 +171,7 @@ def main() -> int:
                 print(f"error: {error}", file=sys.stderr)
                 return 1
             return 0
-        investigation(graph, args.events, args.scenario)
+        investigation(graph, case.events, case.scenario)
     return 0
 
 

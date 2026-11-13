@@ -16,6 +16,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from alertcase import agent, answers, facts
+from alertcase.cases import CASES
 from alertcase.claims import CLAIM_FIELDS
 from alertcase.graph import Graph
 from alertcase.recording import record
@@ -171,6 +172,29 @@ class AgentLoopTest(unittest.TestCase):
         client = ScriptedClient(lambda n: submit(bad))
         result = agent.run("graph", client=client, log=lambda _: None)
         self.assertEqual((result.status, result.output), ("malformed_case_note", None))
+
+    def test_a_query_that_runs_too_long_is_stopped_in_either_arm(self) -> None:
+        old = agent.QUERY_SECONDS
+        agent.QUERY_SECONDS = 0.5
+        try:
+            sql = agent.TableQueries(CASES["small"].tables)
+            try:
+                ok, text = sql("WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n) SELECT count(*) FROM n")
+                self.assertEqual((ok, text), (False, agent.TOO_LONG))
+                self.assertTrue(sql("SELECT count(*) AS n FROM transfers")[0])
+            finally:
+                sql.close()
+            cypher = agent.GraphQueries(CASES["small"].store)
+            try:
+                ok, text = cypher("MATCH (a:Account), (b:Account), (c:Account), (d:Account), (e:Account) "
+                                  "RETURN count(*) AS n")
+                self.assertEqual((ok, text), (False, agent.TOO_LONG))
+                ok, text = cypher("MATCH (r:Run) RETURN r.id AS id")  # the worker was opened again
+                self.assertTrue(ok, text)
+            finally:
+                cypher.close()
+        finally:
+            agent.QUERY_SECONDS = old
 
     def test_budgets_stop_a_run_that_never_answers(self) -> None:
         client = ScriptedClient(lambda n: tool_use("MATCH (n) RETURN count(n) AS n", n))

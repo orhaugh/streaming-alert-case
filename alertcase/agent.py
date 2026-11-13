@@ -20,8 +20,12 @@ import hashlib
 import json
 import os
 import platform
+import queue
 import re
 import sqlite3
+import subprocess
+import sys
+import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -32,17 +36,20 @@ import anthropic
 import relate
 
 from . import tables
+from .cases import CASES
 from .claims import CLAIM_MEANINGS, OUTPUT_SCHEMA, case_note_error
 from .events import sha256_of
-from .graph import STORE, Graph
 
 MODEL = "claude-opus-5-5"
 EFFORT = "high"
 MAX_TOOL_CALLS = 20      # queries a run may make
 MAX_REQUESTS = 30        # model requests a run may make
-MAX_TOKENS = 16000       # per response
 ROW_LIMIT = 200          # rows returned per query
 RESULT_CHARS = 30000     # characters returned per query
+QUERY_SECONDS = 30       # a query running longer is stopped, in either arm
+REQUEST_TIMEOUT_S = 1800 # per model request; the large case's responses are long
+# Tokens per response depend on the dataset (cases.py): 16,000 for the small
+# case, 32,000 for the large one, whose case note is longer.
 # On a refusal, the Claude API re-runs the request on a fallback model it
 # chooses. Each run records the model that served every response, so a run a
 # fallback served is visible in its meta.json and in the comparison. Bedrock
@@ -192,40 +199,94 @@ def tools_for(arm: str) -> list[dict]:
 # The two query executors. Both are read-only at the connection: Relate's
 # handle is opened read-only, SQLite's in mode=ro with query_only on.
 
-def _bounded(rows: list[dict]) -> str:
-    shown = rows[:ROW_LIMIT]
-    text = json.dumps({"rows": shown, "row_count": len(rows), "truncated": len(rows) > ROW_LIMIT}, default=str)
+def _bounded(rows: list[dict], row_count: int) -> str:
+    text = json.dumps({"rows": rows[:ROW_LIMIT], "row_count": row_count, "truncated": row_count > ROW_LIMIT},
+                      default=str)
     if len(text) > RESULT_CHARS:
         text = json.dumps({"error": f"the result is {len(text)} characters, over the {RESULT_CHARS} limit: "
                                     "return fewer rows or columns"})
     return text
 
 
+TOO_LONG = f"error: the query ran longer than {QUERY_SECONDS} s and was stopped; narrow it"
+
+
 class GraphQueries:
-    def __init__(self, store: Path = STORE) -> None:
-        self.graph = Graph(store)
+    """Cypher on the store, in a worker process opened once per run. A query
+    that runs longer than QUERY_SECONDS is stopped by stopping the worker,
+    which is then opened again."""
+
+    def __init__(self, store: Path) -> None:
+        self.store = Path(store).resolve()
+        self.worker: subprocess.Popen | None = None
+        self.lines: queue.Queue = queue.Queue()
+        self._start()
+
+    def _start(self) -> None:
+        self.worker = subprocess.Popen(
+            [sys.executable, "-m", "alertcase.query_worker", str(self.store), str(ROW_LIMIT)],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1,
+            cwd=Path(__file__).resolve().parent.parent)
+        self.lines = queue.Queue()
+        threading.Thread(target=self._read, args=(self.worker, self.lines), daemon=True).start()
+        if json.loads(self.lines.get(timeout=600)).get("ready") is not True:
+            raise RuntimeError("the query worker did not open the store")
+
+    @staticmethod
+    def _read(worker: subprocess.Popen, lines: queue.Queue) -> None:
+        for line in worker.stdout:
+            lines.put(line)
 
     def __call__(self, query: str) -> tuple[bool, str]:
+        self.worker.stdin.write(json.dumps({"query": query}) + "\n")
+        self.worker.stdin.flush()
         try:
-            return True, _bounded(self.graph.rows(query))
-        except Exception as error:  # Relate explains what is wrong and how to fix it
-            return False, f"error: {error}"
+            answer = json.loads(self.lines.get(timeout=QUERY_SECONDS))
+        except queue.Empty:
+            self.close()
+            self._start()
+            return False, TOO_LONG
+        if "error" in answer:
+            return False, f"error: {answer['error']}"
+        return True, _bounded(answer["rows"], answer["row_count"])
 
     def close(self) -> None:
-        self.graph.close()
+        if self.worker:
+            if self.worker.poll() is None:
+                self.worker.kill()
+                self.worker.wait()
+            for pipe in (self.worker.stdin, self.worker.stdout):
+                try:
+                    pipe.close()
+                except OSError:
+                    pass
 
 
 class TableQueries:
-    def __init__(self, path: Path = tables.TABLES) -> None:
+    """SQL on the tables. A query that runs longer than QUERY_SECONDS is
+    interrupted through SQLite's progress handler."""
+
+    def __init__(self, path: Path) -> None:
         self.db = tables.connect_read_only(path)
 
     def __call__(self, query: str) -> tuple[bool, str]:
+        deadline = time.monotonic() + QUERY_SECONDS
+        self.db.set_progress_handler(lambda: 1 if time.monotonic() > deadline else 0, 10_000)
         try:
             cursor = self.db.execute(query)
             names = [d[0] for d in cursor.description or []]
-            return True, _bounded([dict(zip(names, row)) for row in cursor.fetchmany(ROW_LIMIT + 1)])
+            rows, count = [], 0
+            for row in cursor:
+                if count < ROW_LIMIT:
+                    rows.append(dict(zip(names, row)))
+                count += 1
+            return True, _bounded(rows, count)
+        except sqlite3.OperationalError as error:
+            return False, TOO_LONG if time.monotonic() > deadline else f"error: {error}"
         except sqlite3.Error as error:
             return False, f"error: {error}"
+        finally:
+            self.db.set_progress_handler(None, 0)
 
     def close(self) -> None:
         self.db.close()
@@ -258,11 +319,12 @@ class RunResult:
     transcript: list[dict]
 
 
-def send(client: Any, provider: str, system: str, tools: list[dict], messages: list) -> Any:
+def send(client: Any, provider: str, system: str, tools: list[dict], messages: list, max_tokens: int) -> Any:
     """One model request, the same on both providers apart from the fallback."""
     request = dict(
         model=model_for(provider),
-        max_tokens=MAX_TOKENS,
+        max_tokens=max_tokens,
+        timeout=REQUEST_TIMEOUT_S,
         system=system,
         tools=tools,
         messages=messages,
@@ -279,12 +341,13 @@ def provider_error(error: Exception) -> bool:
     return isinstance(error, anthropic.APIError) or type(error).__module__.split(".")[0] in ("botocore", "boto3")
 
 
-def smoke(arm: str, provider: str, client: Any = None) -> dict:
+def smoke(arm: str, provider: str, case: str = "small", client: Any = None) -> dict:
     """Sends a run's first request once and reports how the provider answered:
     that it accepts the request's tools, output format, effort and caching.
     Writes nothing, and runs no query."""
     client = client or make_client(provider)
-    response = send(client, provider, system_prompt(arm), tools_for(arm), [{"role": "user", "content": TASK}])
+    response = send(client, provider, system_prompt(arm), tools_for(arm), [{"role": "user", "content": TASK}],
+                    CASES[case].max_tokens)
     usage = response.usage
     return {"provider": provider, "model_requested": model_for(provider), "model_served": response.model,
             "stop_reason": response.stop_reason, "blocks": [getattr(b, "type", None) for b in response.content],
@@ -293,11 +356,14 @@ def smoke(arm: str, provider: str, client: Any = None) -> dict:
             "cache_read_input_tokens": getattr(usage, "cache_read_input_tokens", None)}
 
 
-def run(arm: str, client: Any = None, provider: str = "anthropic", store: Path = STORE,
-        table_path: Path = tables.TABLES, log: Callable[[str], None] = print) -> RunResult:
-    """One investigation. client is the provider's SDK client; tests pass a stand-in."""
+def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "small",
+        log: Callable[[str], None] = print) -> RunResult:
+    """One investigation of one dataset. client is the provider's SDK client;
+    tests pass a stand-in. The evidence is opened before the clock starts."""
     client = client or make_client(provider)
-    execute = GraphQueries(store) if arm == "graph" else TableQueries(table_path)
+    dataset = CASES[case]
+    dataset.unpack()
+    execute = GraphQueries(dataset.store) if arm == "graph" else TableQueries(dataset.tables)
     system, tools = system_prompt(arm), tools_for(arm)
     messages: list[dict] = [{"role": "user", "content": TASK}]
     transcript: list[dict] = []
@@ -314,7 +380,7 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", store: Path =
                 status = "request_budget_exhausted"
                 break
             requests += 1
-            response = send(client, provider, system, tools, messages)
+            response = send(client, provider, system, tools, messages, dataset.max_tokens)
             stop_reason = response.stop_reason
             served.append(response.model)
             usage = response.usage
@@ -392,8 +458,9 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", store: Path =
     finally:
         execute.close()
 
-    evidence = store if arm == "graph" else table_path
+    evidence = dataset.store if arm == "graph" else dataset.tables
     meta = {
+        "case": case,
         "arm": arm,
         "status": status,
         "stop_reason": stop_reason,
@@ -403,15 +470,16 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", store: Path =
         "models_served": sorted(set(served)),
         "fallback_used": fallback_used,
         "effort_setting": EFFORT,
-        "budgets": {"max_tool_calls": MAX_TOOL_CALLS, "max_requests": MAX_REQUESTS, "max_tokens_per_response": MAX_TOKENS,
-                    "row_limit": ROW_LIMIT, "result_chars": RESULT_CHARS},
+        "budgets": {"max_tool_calls": MAX_TOOL_CALLS, "max_requests": MAX_REQUESTS,
+                    "max_tokens_per_response": dataset.max_tokens, "row_limit": ROW_LIMIT, "result_chars": RESULT_CHARS,
+                    "query_seconds": QUERY_SECONDS},
         "effort": {"tool_calls": tool_calls, "tool_errors": tool_errors, "requests": requests,
                    "wall_seconds": round(time.monotonic() - clock, 1), **totals},
         "started": started.isoformat(timespec="seconds"),
         "versions": {"anthropic": anthropic.__version__, "relate-db": relate.__version__,
                      "python": platform.python_version()},
         "evidence": {"path": str(evidence), "sha256": sha256_of(evidence),
-                     "dataset_sha256": sha256_of("data/events.ndjson")},
+                     "dataset_sha256": sha256_of(dataset.events)},
         "prompt_sha256": {"system": _sha(system), "task": _sha(TASK), "tool": _sha(json.dumps(tools, sort_keys=True)),
                           "output_schema": _sha(json.dumps(OUTPUT_SCHEMA, sort_keys=True))},
     }

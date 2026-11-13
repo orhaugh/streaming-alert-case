@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Verify what this repository claims, with no model and no API key.
 
+For each bounded dataset (the small case, and the same pipeline at scale):
   1. the store: the published Relate store against expectations calculated
      independently from the raw events, and the run that wrote it;
   2. the checker: every claim of the answer key is supported, and every
-     deliberately unsupported claim in claims/planted.json is rejected;
+     deliberately unsupported claim in claims/ is rejected;
   3. the tables: the SQLite tables the table-based agent reads hold the same
-     records as the store;
-  4. the recorded agent runs: each run's claims are checked again against the
-     store and the events, and its verdicts and scores must equal the ones
-     recorded beside it.
+     records as the store.
+Then every recorded agent run: its claims are checked again against its
+dataset's store and events, and its verdicts and scores must equal the ones
+recorded beside it; each comparison's summary must equal the one computed
+again from its runs.
 
 Exit status 0 only when every check passes. What it checks is structured:
 records, values, references and query results. It does not judge prose.
@@ -23,6 +25,7 @@ import sys
 from pathlib import Path
 
 from alertcase import answers, facts, tables
+from alertcase.cases import CASES, Case
 from alertcase.claims import check_claims, flatten_claims
 from alertcase.comparison import summarise
 from alertcase.graph import Graph
@@ -44,78 +47,91 @@ class Report:
         print(f"\n{title}")
 
 
-def recorded_runs(root: Path) -> list[Path]:
-    return sorted(p.parent for p in root.glob("**/meta.json"))
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--events", type=Path, default=Path("data/events.ndjson"))
-    parser.add_argument("--scenario", type=Path, default=Path("data/scenario.json"))
-    parser.add_argument("--store", type=Path, default=Path("store/case.rl"))
-    parser.add_argument("--tables", type=Path, default=tables.TABLES)
-    parser.add_argument("--planted", type=Path, default=Path("claims/planted.json"))
-    parser.add_argument("--runs", type=Path, default=Path("runs/recorded"))
-    parser.add_argument("--superseded", type=Path, default=Path("runs/superseded"),
-                        help="recorded runs kept for the record, made with an earlier version of the prompt")
-    args = parser.parse_args()
-
-    report = Report()
-    events = facts.from_events(args.events)
-    with Graph(args.store) as graph:
-        report.section(f"The store, {args.store}")
-        check_store(graph, args.events, args.scenario, report.record)
+def check_case(case: Case, report: Report) -> tuple[facts.Facts, facts.Facts] | None:
+    case.unpack()
+    if not case.store.exists():
+        report.section(f"The {case.name} case")
+        report.record("store", False, f"no store at {case.store}: run ./rebuild.sh {case.name}")
+        return None
+    events = facts.from_events(case.events)
+    with Graph(case.store) as graph:
+        report.section(f"The {case.name} case: the store, {case.store}")
+        check_store(graph, case.events, case.scenario, report.record)
         graph_facts = facts.from_graph(graph)
 
-    report.section("The claim checker")
-    key_claims = answers.expected_claims(events)
-    verdicts = check_claims(key_claims, events, graph_facts)
+    report.section(f"The {case.name} case: the claim checker")
+    verdicts = check_claims(answers.expected_claims(events), events, graph_facts)
     report.record("answer key supported", all(v["status"] == "supported" for v in verdicts),
                   f"{sum(v['status'] == 'supported' for v in verdicts)} of {len(verdicts)} claims of the answer key "
                   "are supported by the events and the graph")
-    planted = json.loads(args.planted.read_text())
-    for entry, verdict in zip(planted, check_claims([p["claim"] for p in planted], events, graph_facts)):
-        reason = verdict.get("reason") or f"events: {verdict['events']}; graph: {verdict['graph']}"
-        report.record(f"planted {verdict['claim']} rejected", verdict["status"] == "unsupported",
-                      f"{verdict['status']}: {reason}")
+    if case.planted.exists():
+        planted = json.loads(case.planted.read_text())
+        for verdict in check_claims([p["claim"] for p in planted], events, graph_facts):
+            reason = verdict.get("reason") or f"events: {verdict['events']}; graph: {verdict['graph']}"
+            report.record(f"planted {verdict['claim']} rejected", verdict["status"] == "unsupported",
+                          f"{verdict['status']}: {reason}")
 
-    report.section(f"The tables, {args.tables}")
-    if args.tables.exists():
-        held = tables.from_tables(args.tables)
+    report.section(f"The {case.name} case: the tables, {case.tables}")
+    if case.tables.exists():
+        held = tables.from_tables(case.tables)
         same = {name: getattr(held, name) == getattr(events, name)
                 for name in ("transfers", "indicators", "links", "device_senders", "run")}
         report.record("same records as the store", all(same.values()),
                       "transfers, fan-in alerts with contributions, onward links and the run equal the bounded dataset"
                       if all(same.values()) else f"differ: {[k for k, ok in same.items() if not ok]}")
     else:
-        report.record("same records as the store", False, "missing: run export_tables.py")
+        report.record("same records as the store", False, f"missing: run export_tables.py --case {case.name}")
+    return events, graph_facts
 
-    for root, title in ((args.runs, "Recorded agent runs"), (args.superseded, "Superseded agent runs")):
-        if root == args.superseded and not root.exists():
+
+def check_runs(root: Path, title: str, sources: dict, report: Report) -> None:
+    report.section(f"{title}, {root}")
+    runs = sorted(p.parent for p in root.glob("**/meta.json"))
+    if not runs:
+        print("      none recorded")
+    for run in runs:
+        meta = json.loads((run / "meta.json").read_text())
+        name = str(run.relative_to(root))
+        case = meta.get("case", "small")
+        if case not in sources:
+            continue  # a case this invocation does not check
+        if sources[case] is None:
+            report.record(name, False, f"the {case} case's store is not available to check it against")
             continue
-        report.section(f"{title}, {root}")
-        runs = recorded_runs(root)
-        if not runs:
-            print("      none recorded")
-        for run in runs:
-            meta = json.loads((run / "meta.json").read_text())
-            output = json.loads((run / "output.json").read_text()) if (run / "output.json").exists() else None
-            claims = flatten_claims(output["claims"]) if output else []
-            again = check_claims(claims, events, graph_facts)
-            recorded_check = json.loads((run / "check.json").read_text())
-            recorded_score = json.loads((run / "score.json").read_text())
-            rescored = score(output, events, graph_facts, meta["effort"])
-            same = again == recorded_check and rescored == recorded_score
-            report.record(str(run.relative_to(root)), same,
-                          f"{meta['arm']} arm, {meta['status']}: correctness {rescored['correctness']:.2f}, "
-                          f"{rescored['supported']} of {rescored['claims']} claims supported, reference validity "
-                          f"{rescored['reference_validity']}; verdicts and scores equal the recorded ones"
-                          if same else "the verdicts or scores differ from the ones recorded beside the run")
-        for summary_path in sorted(root.glob("**/summary.json")):
-            same = summarise(summary_path.parent) == json.loads(summary_path.read_text())
-            report.record(str(summary_path.relative_to(root)), same,
-                          "the comparison's summary equals the one computed again from its runs' scores"
-                          if same else "the summary differs from the one computed from its runs' scores")
+        events, graph_facts = sources[case]
+        output = json.loads((run / "output.json").read_text()) if (run / "output.json").exists() else None
+        claims = flatten_claims(output["claims"]) if output else []
+        again = check_claims(claims, events, graph_facts)
+        recorded_check = json.loads((run / "check.json").read_text())
+        recorded_score = json.loads((run / "score.json").read_text())
+        rescored = score(output, events, graph_facts, meta["effort"])
+        same = again == recorded_check and rescored == recorded_score
+        report.record(name, same,
+                      f"{case} case, {meta['arm']} arm, {meta['status']}: correctness {rescored['correctness']:.2f}, "
+                      f"{rescored['supported']} of {rescored['claims']} claims supported, reference validity "
+                      f"{rescored['reference_validity']}; verdicts and scores equal the recorded ones"
+                      if same else "the verdicts or scores differ from the ones recorded beside the run")
+    for summary_path in sorted(root.glob("**/summary.json")):
+        same = summarise(summary_path.parent) == json.loads(summary_path.read_text())
+        report.record(str(summary_path.relative_to(root)), same,
+                      "the comparison's summary equals the one computed again from its runs' scores"
+                      if same else "the summary differs from the one computed from its runs' scores")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--case", choices=["all", *sorted(CASES)], default="all")
+    parser.add_argument("--runs", type=Path, default=Path("runs/recorded"))
+    parser.add_argument("--superseded", type=Path, default=Path("runs/superseded"),
+                        help="recorded runs kept for the record, made with an earlier version of the prompt")
+    args = parser.parse_args()
+
+    report = Report()
+    names = sorted(CASES, key=lambda n: n != "small") if args.case == "all" else [args.case]
+    sources = {name: check_case(CASES[name], report) for name in names}
+    check_runs(args.runs, "Recorded agent runs", sources, report)
+    if args.superseded.exists():
+        check_runs(args.superseded, "Superseded agent runs", sources, report)
 
     passed = sum(report.results)
     print(f"\n{passed} of {len(report.results)} checks passed")

@@ -3,6 +3,10 @@ __pycache__/
 *.pyc
 # A store clink is still writing, before publish_run.py checks it.
 *.building.rl
+# The large case ships its store and tables gzipped; these are the copies
+# unpacked from them on first use.
+/store/large.rl
+/tables/large.sqlite
 # What clink printed during the last rebuild.
 /build/
 # Live agent runs: optional, need a model API key, never overwrite recorded ones.
