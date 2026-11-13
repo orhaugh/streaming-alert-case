@@ -1,0 +1,71 @@
+{
+  "seed": 20261112,
+  "lag_ms": 300000,
+  "designed": {
+    "suspicious": {
+      "account": "A-9278",
+      "window_start": 1794301200000,
+      "senders": [
+        "A-3881",
+        "A-4366",
+        "A-4452",
+        "A-6801",
+        "A-7266",
+        "A-8133"
+      ],
+      "route": [
+        "A-9278",
+        "A-5092",
+        "A-2897",
+        "A-4989"
+      ],
+      "onward_depth": 3,
+      "shared_device": {
+        "device": "D-568",
+        "accounts": [
+          "A-2897",
+          "A-5092",
+          "A-9278"
+        ]
+      }
+    },
+    "benign": {
+      "account": "A-9895",
+      "window_start": 1794319200000,
+      "senders": [
+        "A-4399",
+        "A-4792",
+        "A-8060",
+        "A-8166",
+        "A-8770",
+        "A-9088"
+      ],
+      "route": [
+        "A-9895",
+        "A-1415"
+      ],
+      "onward_depth": 1,
+      "shared_device": null
+    },
+    "shared_device_off_route": {
+      "device": "D-619",
+      "accounts": [
+        "A-2952",
+        "A-9652"
+      ]
+    },
+    "inversions": {
+      "window_boundary": {
+        "credit": "T0012",
+        "arrives_after": "T0013"
+      },
+      "forwarding": {
+        "credit": "T0007",
+        "debit_arrives_first": "T0008"
+      }
+    }
+  },
+  "events": 55,
+  "sha256": "72cf0e4b91a346f7a20187386d5b65f4821abf759b2752e13bee3a488efac880",
+  "max_disorder_ms": 150000
+}

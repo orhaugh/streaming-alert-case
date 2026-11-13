@@ -1,0 +1,4 @@
+# Direct dependencies. requirements.txt is the hashed lock, made with:
+#   uv pip compile requirements.in --universal --generate-hashes --python-version 3.11 -o requirements.txt
+relate-db==1.0.1
+anthropic==2.8.0

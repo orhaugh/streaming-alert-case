@@ -1,0 +1,23 @@
+[
+  {
+    "why_planted": "Connects the benign lookalike's route through the suspicious case's device. D-568 was never used to send from A-9895 or A-1415.",
+    "claim": {"id": "P1", "type": "shared_device", "device": "D-568", "accounts": ["A-9895", "A-1415"],
+              "on_route_of": "fan_in:A-9895:1794319200000"}
+  },
+  {
+    "why_planted": "The alert as a stream processor with no out-of-order allowance would have computed it: the late credit T0012 dropped, five senders and 2,810.00 instead of six and 3,570.00.",
+    "claim": {"id": "P2", "type": "indicator", "indicator": "fan_in:A-9278:1794301200000", "account": "A-9278",
+              "window_start_ms": 1794301200000, "window_end_ms": 1794304800000, "senders": 5, "transfers": 5,
+              "total_minor": 281000, "contributing": ["T0002", "T0003", "T0006", "T0010", "T0011"]}
+  },
+  {
+    "why_planted": "The resting point an arrival-order lookup would report: the debit T0008 arrived before the credit T0007, so the lookup misses onward:T0007:T0008 and stops at A-5092.",
+    "claim": {"id": "P3", "type": "onward_path", "transfers": ["T0002", "T0007"],
+              "from_indicator": "fan_in:A-9278:1794301200000", "comes_to_rest_at": "A-5092"}
+  },
+  {
+    "why_planted": "Cites a transfer that is not in the bounded dataset.",
+    "claim": {"id": "P4", "type": "event", "transfer": "T0099", "sender": "A-9278", "receiver": "A-4989",
+              "amount_minor": 357000, "event_time_ms": null, "device": null}
+  }
+]

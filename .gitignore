@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+# A store clink is still writing, before publish_run.py checks it.
+*.building.rl
+# What clink printed during the last rebuild.
+/build/
+# Live agent runs: optional, need a model API key, never overwrite recorded ones.
+/runs/live/
