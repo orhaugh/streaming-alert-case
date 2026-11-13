@@ -1,0 +1,154 @@
+{
+  "graph": {
+    "runs": 3,
+    "completed": 3,
+    "served_by_a_fallback_model": 0,
+    "mean": {
+      "correctness": 1.0,
+      "claims": 46.3333,
+      "unsupported_claims": 1,
+      "reference_validity": 1.0,
+      "tool_calls": 9,
+      "tool_errors": 0,
+      "requests": 5,
+      "input_tokens_total": 40629.3333,
+      "output_tokens": 9108,
+      "wall_seconds": 110.0
+    },
+    "per_run": [
+      {
+        "run": "graph-1",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 52,
+        "unsupported_claims": 1,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 2,
+        "tool_calls": 9,
+        "tool_errors": 0,
+        "requests": 5,
+        "input_tokens_total": 39627,
+        "output_tokens": 9480,
+        "wall_seconds": 115.4
+      },
+      {
+        "run": "graph-2",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 43,
+        "unsupported_claims": 1,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 2,
+        "tool_calls": 8,
+        "tool_errors": 0,
+        "requests": 5,
+        "input_tokens_total": 39830,
+        "output_tokens": 8558,
+        "wall_seconds": 103.5
+      },
+      {
+        "run": "graph-3",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 44,
+        "unsupported_claims": 1,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 2,
+        "tool_calls": 10,
+        "tool_errors": 0,
+        "requests": 5,
+        "input_tokens_total": 42431,
+        "output_tokens": 9286,
+        "wall_seconds": 111.1
+      }
+    ]
+  },
+  "table": {
+    "runs": 3,
+    "completed": 3,
+    "served_by_a_fallback_model": 0,
+    "mean": {
+      "correctness": 1.0,
+      "claims": 39.3333,
+      "unsupported_claims": 0.6667,
+      "reference_validity": 1.0,
+      "tool_calls": 5.3333,
+      "tool_errors": 0,
+      "requests": 3.3333,
+      "input_tokens_total": 23007,
+      "output_tokens": 7103,
+      "wall_seconds": 85.6333
+    },
+    "per_run": [
+      {
+        "run": "table-1",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 41,
+        "unsupported_claims": 1,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 2,
+        "tool_calls": 5,
+        "tool_errors": 0,
+        "requests": 3,
+        "input_tokens_total": 19051,
+        "output_tokens": 7322,
+        "wall_seconds": 87.4
+      },
+      {
+        "run": "table-2",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 46,
+        "unsupported_claims": 1,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 2,
+        "tool_calls": 6,
+        "tool_errors": 0,
+        "requests": 4,
+        "input_tokens_total": 30924,
+        "output_tokens": 7901,
+        "wall_seconds": 96.3
+      },
+      {
+        "run": "table-3",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 31,
+        "unsupported_claims": 0,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 0,
+        "tool_calls": 5,
+        "tool_errors": 0,
+        "requests": 3,
+        "input_tokens_total": 19046,
+        "output_tokens": 6086,
+        "wall_seconds": 73.2
+      }
+    ]
+  }
+}

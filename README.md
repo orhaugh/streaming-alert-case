@@ -42,8 +42,10 @@ are stated as claims (`claims/planted.json`, P2 and P3).
 
 Relate holds the connections and answers questions over them in Cypher: how
 far the money went, where it came to rest, and which accounts on the way
-sent from the same device. The comparison below puts the same records in
-tables, to measure what the graph changes for an investigating agent.
+sent from the same device. It keeps them in one file that clink writes and
+anyone can reopen. The comparison below gives the same agent the same records
+as tables. On this small case, that changed the agent's effort, not its
+correctness.
 
 ## How it uses Relate
 
@@ -113,12 +115,29 @@ runtime image, publishes only if every job succeeded, and then verifies:
 ./rebuild.sh
 ```
 
-Optional, with credentials (`ANTHROPIC_API_KEY`, or an `ant auth login` profile):
+Optional, with Claude API credentials (`ANTHROPIC_API_KEY`, or an `ant auth login` profile):
 
 ```bash
 .venv/bin/python investigate.py              # one live agent run, written to runs/live/
 .venv/bin/python compare.py --runs 3         # the table and graph comparison, live
 ```
+
+Or through Amazon Bedrock, with AWS credentials for an account that can use
+Claude Opus 5.5:
+
+```bash
+.venv/bin/pip install --require-hashes -r requirements-bedrock.txt   # adds boto3 and botocore
+export AWS_PROFILE=<your profile> AWS_REGION=<your region>
+.venv/bin/python investigate.py --provider bedrock --smoke   # one request: does Bedrock accept it?
+.venv/bin/python investigate.py --provider bedrock
+.venv/bin/python compare.py --provider bedrock --runs 3
+```
+
+On Bedrock the model is `global.anthropic.claude-opus-5-5`, the global
+cross-region inference profile, which can serve a request from another region.
+In some regions, ap-south-1 among them, Claude Opus 5.5 is offered only through
+an inference profile. Set `BEDROCK_MODEL_ID=anthropic.claude-opus-5-5` where
+the model runs in your region itself.
 
 ## Where the data lives
 
@@ -176,17 +195,18 @@ links that make them up, such as `onward:T0007:T0008`.
 
 ## The case note and its checker
 
-The agent writes its case note as structured output: findings, hypotheses and
-unresolved questions, kept apart, and a list of claims. Every finding cites
-claim ids. Every claim is one of seven types, each with one rule
-(`alertcase/claims.py`):
+The agent submits its case note as the input of a tool, `submit_case_note`,
+whose input schema is the case note. It holds findings, hypotheses and
+unresolved questions, kept apart, and claims grouped by type. Every finding
+cites claim ids. Every claim is one of seven types, states every value of its
+type, and is judged by one rule (`alertcase/claims.py`):
 
 | Type | Asserts |
 |---|---|
 | `event` | a transfer exists with the stated sender, receiver, amount, time and device |
 | `indicator` | a fan-in indicator has the stated values and exactly the stated contributing transfers |
 | `onward_path` | each step is a recorded onward link, and the path starts at an alert and comes to rest where stated |
-| `onward_reach` | an alert's longest chain, resting accounts and route accounts |
+| `onward_reach` | an alert's longest chain, resting accounts and route accounts (the alerted account and every account paid by an onward transfer in its chains) |
 | `shared_device` | a device sent from exactly the stated accounts on an alert's routes |
 | `absence` | no shared device on a route, no onward link from a transfer, no alert for an account |
 | `count` | the number of alerts, transfers, onward links, accounts or devices |
@@ -211,19 +231,43 @@ PASS  planted P3 rejected   unsupported: T0007 was passed on: ['onward:T0007:T00
 
 ## Recorded and live agent runs
 
-The agent is Claude (`claude-opus-5-5`, effort `high`) with one read-only
-query tool, run through the Anthropic SDK's tool-use loop
-(`alertcase/agent.py`). A recorded run lives in `runs/recorded/<name>/` with
-every response, every query and its result, the structured output, the
-checker's verdicts, the score and the rendered `case_note.md`. `verify.py`
-checks every claim of a recorded run again and fails if the verdicts or
-scores differ from the ones recorded. A live run writes `runs/live/`, which
-git ignores, and never replaces a recorded one.
+The agent is Claude Opus 5.5 at effort `high`, with one read-only query tool
+and the tool it submits the case note with. It runs through the Anthropic
+SDK's tool-use loop (`alertcase/agent.py`), on the Claude API or on Amazon
+Bedrock. The request is the same on both, except that only the Claude API has
+the server-side refusal fallback; on Bedrock a refusal ends the run.
 
-**Status: no agent run has been recorded yet.** The harness is tested against
-a scripted stand-in client (`tests/test_agent_loop.py`), which checks the loop,
-the budgets and the recording. The stand-in is not a model, and nothing it
-returns is reported as a result.
+A recorded run lives in `runs/recorded/<name>/`. It keeps every response,
+every query and its result, the submitted case note, the checker's verdicts,
+the score and the rendered `case_note.md`. `verify.py` checks every claim of a
+recorded run again, and fails if the verdicts or scores differ from the ones
+recorded. A live run writes `runs/live/`, which git ignores, and never
+replaces a recorded one. A recorded run keeps the provider and the region,
+never the account. Error text and provider responses are scrubbed of ARNs,
+account ids and the AWS profile's name before they are written.
+
+Before any run was recorded, one live run through Bedrock checked the harness
+end to end. It completed, with 48 of its 49 claims supported. The one it
+missed counted the alert's senders among the accounts "on its routes". That
+was a fair reading of the claim's wording, which did not say whether senders
+count, so the wording now says exactly what the checker has always meant.
+Both arms are given it. The live run is not part of any result.
+
+**The recorded case note** is `runs/recorded/case-note/case_note.md`. It is
+from the graph arm, through Amazon Bedrock on 13 November 2026, made with
+`investigate.py --provider bedrock --record case-note`.
+
+- The agent made 9 queries in 5 model requests, over 108 seconds.
+- It submitted 9 findings, 3 hypotheses and 4 unresolved questions.
+- The checker supported all 50 of its claims. They cover all seven required
+  facts, and all 59 distinct ids it cites resolve.
+- Its hypotheses say what the data does not establish. For one device sending
+  from three accounts, it notes that the data records device use, not
+  ownership or identity.
+
+The harness is also tested against a scripted stand-in client
+(`tests/test_agent_loop.py`). That checks the loop, the budgets and the
+recording, without a model.
 
 ## Table-based or Relate-based investigation: the comparison
 
@@ -246,8 +290,49 @@ Each run is scored the same way (`alertcase/scoring.py`):
   prose included, that exist in the dataset;
 - **effort:** queries, failed queries, model requests, tokens and seconds.
 
-**Status: not run yet.** No results are reported until there are recorded
-runs to compute them from. `verify.py` recomputes the summary from them.
+### Results
+
+Three runs per arm, arms alternating, recorded on 13 November 2026 with
+`compare.py --provider bedrock --runs 3 --record comparison-2026-11-13`. The
+model was Claude Opus 5.5 through Amazon Bedrock (the global inference
+profile, from ap-south-1), at effort `high`. Every response came from
+`claude-opus-5-5`; no run was served by a fallback. The runs are in
+`runs/recorded/comparison-2026-11-13/`, and `verify.py` recomputes every
+number below from them.
+
+| | Graph arm: Relate, Cypher | Table arm: SQLite, SQL |
+|---|---|---|
+| Runs completed | 3 of 3 | 3 of 3 |
+| Correctness, each run | 1.00, 1.00, 1.00 | 1.00, 1.00, 1.00 |
+| Claims made, each run | 52, 43, 44 | 41, 46, 31 |
+| Claims not supported, each run | 1, 1, 1 | 1, 1, 0 |
+| Reference validity | 1.0 in every run | 1.0 in every run |
+| Queries, mean (none failed) | 9 | 5.3 |
+| Model requests, mean | 5 | 3.3 |
+| Input tokens, mean, cache included | 40,629 | 23,007 |
+| Output tokens, mean | 9,108 | 7,103 |
+| Seconds, mean | 110 | 86 |
+
+What it shows, and what it does not:
+
+- **No difference in correctness here.** Both arms covered all seven required
+  facts in every run, and every id they cited exists. The table arm got there
+  with fewer queries and fewer tokens.
+- **Neither arm used the graph to traverse.** The graph agent asked for single
+  onward links, never a variable-length or multi-hop path, and joined them
+  itself. The table agent selected whole tables once or twice, and read 73 to
+  77 rows in all. At 55 transfers the whole case fits in the model's context,
+  so following relationships in the store saves it nothing. Whether the graph
+  helps when the evidence does not fit is not tested here.
+- **One unsupported claim, made in five of the six runs, in both arms.** It
+  listed A-9895 among the benign alert's resting accounts, because three of
+  its contributing transfers were never passed on. The claim type does not say
+  whether a contributing transfer that is not passed on ends a chain of zero
+  links; the checker counts only chains of at least one onward link. This is a
+  gap in the claim vocabulary, not a factual error, and it is left as
+  recorded.
+- **The sample is small.** Three runs per arm on one dataset are
+  observations, not statistically tested differences.
 
 ## What ran
 
@@ -258,11 +343,18 @@ On macOS 26.3.1, arm64, on 13 November 2026:
   `sha256:f19c890c747e8a6e097568e0003cd83c303599a4bfbb0095751045909124802f`, as
   linux/arm64. It ran with Docker Desktop (engine 29.8.2) and no network. clink
   exited 0, 55 of 55 records reconciled, and the store was published.
-- `verify.py`: 15 of 15 checks passed (9 on the store, 5 on the checker, 1 on
-  the tables).
-- `python -m unittest`: 11 tests passed.
-- Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, installed with
-  `--require-hashes` from `requirements.txt`.
+- `investigate.py --provider bedrock --smoke`: one request through Bedrock
+  from ap-south-1, accepted and answered by `claude-opus-5-5`.
+- `investigate.py --provider bedrock --record case-note` and
+  `compare.py --provider bedrock --runs 3 --record comparison-2026-11-13`:
+  seven recorded runs, all completed (see above). One live run before them
+  checked the harness and is not recorded.
+- `verify.py`: 23 of 23 checks passed. That is 9 on the store, 5 on the
+  checker, 1 on the tables, 7 on the recorded runs and 1 on the comparison's
+  summary.
+- `python -m unittest`: 15 tests passed.
+- Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, boto3 and botocore
+  1.44.2, installed with `--require-hashes` from `requirements-bedrock.txt`.
 - A fresh clone, set up exactly as in "Setup and run" with Python 3.11.9:
   `verify.py` 15 of 15, the unit tests passed, `explore.py` ran, and
   `./rebuild.sh` exited 0 and verified 15 of 15 again.
@@ -274,7 +366,13 @@ store checks.
 
 ## Not done, and not verified
 
-- No agent run and no comparison have been recorded yet (see above).
+- **Larger evidence:** the comparison used one small dataset, three runs per
+  arm. Whether the graph helps an agent when the evidence does not fit in its
+  context is not tested.
+- **Resting accounts:** the claim type for them is ambiguous about a
+  contributing transfer that is not passed on (see the comparison).
+- **The Claude API path:** the recorded runs went through Amazon Bedrock. The
+  Claude API path is tested only with the stand-in client.
 - The `relate` command line and Relate's MCP server were not run. The store
   was reopened through the Python library only.
 - The pipeline has run only in Docker on a Mac: never on a Linux host or an
@@ -299,7 +397,9 @@ store checks.
 - **Relate by Neo4j:** `relate-db` 1.0.1 from PyPI, and Relate's C library
   1.0.1 inside clink's image.
 - **Third-party tools:** Docker, to run the clink image. The Anthropic Python
-  SDK 2.8.0 and the model `claude-opus-5-5`, for the agent.
+  SDK 2.8.0 and the model Claude Opus 5.5, for the agent, reached through
+  Amazon Bedrock for the recorded runs (boto3 and botocore 1.44.2 for its
+  credentials).
 - **AI tools:** Claude Code, with Claude Opus 5.5, wrote much of the code and
   documentation in this repository and in clink's Relate connector, under the
   author's direction and review.

@@ -1,0 +1,724 @@
+[
+  {
+    "request": 1,
+    "response": {
+      "id": "msg_bdrk_5evik4xeszhkwkipei3zo5nvhtoxet2r7kfjcfgwog35ra6w57aa",
+      "container": null,
+      "content": [
+        {
+          "signature": "CAQS7QMKEggTEAEYAjgBQgh0aGlua2luZxIMsVd3tMwk5iKLVbSIGgxcsxSiul6FQUU864QiMPL8tFYo13sJGXwsbtNxD9adqleYte06NggJMXH12qplkghnlN/9ui/TSY49doiY3iqIA8hsqUozTxxj1d79RZKrS/7DjW4Rg8pjuI4olnZ5Oe5sOw6YHbgWmJgebOTMg13P7HYD36zhyjVl6fb0BAz7qIVjHktW7nFVjAeNsB6xFRfjC3f4/7Z/Fmhfc/31xG5ESvjcod45C+9xc2kCunNMwTk7cKnbejsyheqUORO0BEU7Vz843kF4ixp22RfmeV1yn0sa+MS/zeHrcLifBlv2DA6Vvnle+jRYUDaEQtKMdLjW+/vLM6tZo4Ve3GDyqBNWuKQl+H8FJ8wMU7zy0/NnPh83gBnTyP2/Q6gLfwUC8R9kyiGBFhNQwIt4T8ipEJqQx/wG6k82lh2d6EwhyNP6fLMQzsmuDYTpGf3EfDd28I56em1pnSo0HRmAGwZN/cZJGKtq1ZTzcWe01AZuovBsMz96j+78x7HVoTBcKVeP+jEVgx+JCyBSo50z7eS41Qb5oYnVe0OxP0eCzsJUUJfujXlZvmH09saDgjGaJSzZlPwIptxTwjUkrhbx/sZwmqOBmO4GHtJkqM7lGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_bdrk_01QBcV8NXFszszMJtzU45R4a",
+          "input": {
+            "query": "SELECT * FROM run",
+            "purpose": "run record"
+          },
+          "name": "query",
+          "type": "tool_use"
+        },
+        {
+          "id": "toolu_bdrk_01EvA79i8GZWN96VQrrbfRJa",
+          "input": {
+            "query": "SELECT a.*, group_concat(c.transfer_id) FROM fan_in_alerts a JOIN alert_contributions c USING(indicator_id) GROUP BY a.indicator_id",
+            "purpose": "alerts and contributions"
+          },
+          "name": "query",
+          "type": "tool_use"
+        },
+        {
+          "id": "toolu_bdrk_01CTvUjQGaDe59ZvMK5ZSe3p",
+          "input": {
+            "query": "SELECT (SELECT count(*) FROM transfers),(SELECT count(*) FROM onward_links),(SELECT count(*) FROM fan_in_alerts),(SELECT count(DISTINCT device) FROM transfers),(SELECT count(*) FROM (SELECT sender a FROM transfers UNION SELECT receiver FROM transfers))",
+            "purpose": "counts"
+          },
+          "name": "query",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 3809
+        },
+        "cache_creation_input_tokens": 3809,
+        "cache_read_input_tokens": 0,
+        "input_tokens": 4,
+        "output_tokens": 418,
+        "output_tokens_details": {
+          "thinking_tokens": 16
+        },
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tool_call": 1,
+    "purpose": "run record",
+    "query": "SELECT * FROM run",
+    "ok": true,
+    "result": "{\"rows\": [{\"run_id\": \"run:72cf0e4b91a3\", \"replay\": \"bounded\", \"dataset_sha256\": \"72cf0e4b91a346f7a20187386d5b65f4821abf759b2752e13bee3a488efac880\", \"dataset_events\": 55, \"jobs\": 3, \"jobs_completed\": 3, \"clink_exit_status\": 0, \"cancelled\": 0, \"pipeline\": \"pipeline/case.sql\", \"clink\": \"ghcr.io/orhaugh/clink-runtime:sha-c134524d8674@sha256:f19c890c747e8a6e097568e0003cd83c303599a4bfbb0095751045909124802f\", \"relate\": \"1.0.1\", \"lag_ms\": 300000, \"fan_in_min_senders\": 5, \"fan_in_window_ms\": 3600000, \"onward_max_gap_ms\": 1800000}], \"row_count\": 1, \"truncated\": false}",
+    "seconds": 0.003
+  },
+  {
+    "tool_call": 2,
+    "purpose": "alerts and contributions",
+    "query": "SELECT a.*, group_concat(c.transfer_id) FROM fan_in_alerts a JOIN alert_contributions c USING(indicator_id) GROUP BY a.indicator_id",
+    "ok": true,
+    "result": "{\"rows\": [{\"indicator_id\": \"fan_in:A-9278:1794301200000\", \"account\": \"A-9278\", \"window_start_ms\": 1794301200000, \"window_end_ms\": 1794304800000, \"senders\": 6, \"transfers\": 6, \"total_minor\": 357000, \"group_concat(c.transfer_id)\": \"T0002,T0003,T0006,T0010,T0011,T0012\"}, {\"indicator_id\": \"fan_in:A-9895:1794319200000\", \"account\": \"A-9895\", \"window_start_ms\": 1794319200000, \"window_end_ms\": 1794322800000, \"senders\": 6, \"transfers\": 6, \"total_minor\": 15000, \"group_concat(c.transfer_id)\": \"T0035,T0036,T0037,T0038,T0039,T0040\"}], \"row_count\": 2, \"truncated\": false}",
+    "seconds": 0.001
+  },
+  {
+    "tool_call": 3,
+    "purpose": "counts",
+    "query": "SELECT (SELECT count(*) FROM transfers),(SELECT count(*) FROM onward_links),(SELECT count(*) FROM fan_in_alerts),(SELECT count(DISTINCT device) FROM transfers),(SELECT count(*) FROM (SELECT sender a FROM transfers UNION SELECT receiver FROM transfers))",
+    "ok": true,
+    "result": "{\"rows\": [{\"(SELECT count(*) FROM transfers)\": 55, \"(SELECT count(*) FROM onward_links)\": 14, \"(SELECT count(*) FROM fan_in_alerts)\": 2, \"(SELECT count(DISTINCT device) FROM transfers)\": 35, \"(SELECT count(*) FROM (SELECT sender a FROM transfers UNION SELECT receiver FROM transfers))\": 48}], \"row_count\": 1, \"truncated\": false}",
+    "seconds": 0.0
+  },
+  {
+    "request": 2,
+    "response": {
+      "id": "msg_bdrk_yhd5flmwizslpqnon4ynt2ivhpp4cje4gh7eodgymi6uoy7rcxoq",
+      "container": null,
+      "content": [
+        {
+          "id": "toolu_bdrk_01LvjLcTPopMBuTDzfnuRRMp",
+          "input": {
+            "query": "SELECT * FROM onward_links ORDER BY credit_transfer_id",
+            "purpose": "all onward links"
+          },
+          "name": "query",
+          "type": "tool_use"
+        },
+        {
+          "id": "toolu_bdrk_01HbPGY1sWKEGK41V2szrh6n",
+          "input": {
+            "query": "SELECT * FROM transfers ORDER BY transfer_id",
+            "purpose": "all transfers"
+          },
+          "name": "query",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 1258
+        },
+        "cache_creation_input_tokens": 1258,
+        "cache_read_input_tokens": 3809,
+        "input_tokens": 2,
+        "output_tokens": 185,
+        "output_tokens_details": {
+          "thinking_tokens": 0
+        },
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tool_call": 4,
+    "purpose": "all onward links",
+    "query": "SELECT * FROM onward_links ORDER BY credit_transfer_id",
+    "ok": true,
+    "result": "{\"rows\": [{\"link_id\": \"onward:T0002:T0007\", \"credit_transfer_id\": \"T0002\", \"debit_transfer_id\": \"T0007\", \"account\": \"A-9278\", \"gap_ms\": 1130000}, {\"link_id\": \"onward:T0003:T0007\", \"credit_transfer_id\": \"T0003\", \"debit_transfer_id\": \"T0007\", \"account\": \"A-9278\", \"gap_ms\": 800000}, {\"link_id\": \"onward:T0006:T0007\", \"credit_transfer_id\": \"T0006\", \"debit_transfer_id\": \"T0007\", \"account\": \"A-9278\", \"gap_ms\": 355000}, {\"link_id\": \"onward:T0007:T0008\", \"credit_transfer_id\": \"T0007\", \"debit_transfer_id\": \"T0008\", \"account\": \"A-5092\", \"gap_ms\": 150000}, {\"link_id\": \"onward:T0008:T0009\", \"credit_transfer_id\": \"T0008\", \"debit_transfer_id\": \"T0009\", \"account\": \"A-2897\", \"gap_ms\": 195000}, {\"link_id\": \"onward:T0010:T0014\", \"credit_transfer_id\": \"T0010\", \"debit_transfer_id\": \"T0014\", \"account\": \"A-9278\", \"gap_ms\": 1550000}, {\"link_id\": \"onward:T0011:T0014\", \"credit_transfer_id\": \"T0011\", \"debit_transfer_id\": \"T0014\", \"account\": \"A-9278\", \"gap_ms\": 1145000}, {\"link_id\": \"onward:T0012:T0014\", \"credit_transfer_id\": \"T0012\", \"debit_transfer_id\": \"T0014\", \"account\": \"A-9278\", \"gap_ms\": 280000}, {\"link_id\": \"onward:T0014:T0015\", \"credit_transfer_id\": \"T0014\", \"debit_transfer_id\": \"T0015\", \"account\": \"A-5092\", \"gap_ms\": 150000}, {\"link_id\": \"onward:T0015:T0016\", \"credit_transfer_id\": \"T0015\", \"debit_transfer_id\": \"T0016\", \"account\": \"A-2897\", \"gap_ms\": 140000}, {\"link_id\": \"onward:T0038:T0041\", \"credit_transfer_id\": \"T0038\", \"debit_transfer_id\": \"T0041\", \"account\": \"A-9895\", \"gap_ms\": 1670000}, {\"link_id\": \"onward:T0039:T0041\", \"credit_transfer_id\": \"T0039\", \"debit_transfer_id\": \"T0041\", \"account\": \"A-9895\", \"gap_ms\": 1170000}, {\"link_id\": \"onward:T0040:T0041\", \"credit_transfer_id\": \"T0040\", \"debit_transfer_id\": \"T0041\", \"account\": \"A-9895\", \"gap_ms\": 540000}, {\"link_id\": \"onward:T0050:T0051\", \"credit_transfer_id\": \"T0050\", \"debit_transfer_id\": \"T0051\", \"account\": \"A-7781\", \"gap_ms\": 1202000}], \"row_count\": 14, \"truncated\": false}",
+    "seconds": 0.0
+  },
+  {
+    "tool_call": 5,
+    "purpose": "all transfers",
+    "query": "SELECT * FROM transfers ORDER BY transfer_id",
+    "ok": true,
+    "result": "{\"rows\": [{\"transfer_id\": \"T0001\", \"sender\": \"A-4767\", \"receiver\": \"A-5610\", \"amount_minor\": 14604, \"event_time_ms\": 1794301474000, \"device\": \"D-373\"}, {\"transfer_id\": \"T0002\", \"sender\": \"A-4452\", \"receiver\": \"A-9278\", \"amount_minor\": 42000, \"event_time_ms\": 1794301510000, \"device\": \"D-940\"}, {\"transfer_id\": \"T0003\", \"sender\": \"A-4366\", \"receiver\": \"A-9278\", \"amount_minor\": 61500, \"event_time_ms\": 1794301840000, \"device\": \"D-479\"}, {\"transfer_id\": \"T0004\", \"sender\": \"A-4604\", \"receiver\": \"A-3801\", \"amount_minor\": 27104, \"event_time_ms\": 1794301843000, \"device\": \"D-906\"}, {\"transfer_id\": \"T0005\", \"sender\": \"A-6516\", \"receiver\": \"A-5559\", \"amount_minor\": 21413, \"event_time_ms\": 1794302093000, \"device\": \"D-465\"}, {\"transfer_id\": \"T0006\", \"sender\": \"A-7266\", \"receiver\": \"A-9278\", \"amount_minor\": 38000, \"event_time_ms\": 1794302285000, \"device\": \"D-307\"}, {\"transfer_id\": \"T0007\", \"sender\": \"A-9278\", \"receiver\": \"A-5092\", \"amount_minor\": 138000, \"event_time_ms\": 1794302640000, \"device\": \"D-568\"}, {\"transfer_id\": \"T0008\", \"sender\": \"A-5092\", \"receiver\": \"A-2897\", \"amount_minor\": 135000, \"event_time_ms\": 1794302790000, \"device\": \"D-568\"}, {\"transfer_id\": \"T0009\", \"sender\": \"A-2897\", \"receiver\": \"A-4989\", \"amount_minor\": 132000, \"event_time_ms\": 1794302985000, \"device\": \"D-568\"}, {\"transfer_id\": \"T0010\", \"sender\": \"A-8133\", \"receiver\": \"A-9278\", \"amount_minor\": 89000, \"event_time_ms\": 1794303450000, \"device\": \"D-587\"}, {\"transfer_id\": \"T0011\", \"sender\": \"A-6801\", \"receiver\": \"A-9278\", \"amount_minor\": 50500, \"event_time_ms\": 1794303855000, \"device\": \"D-850\"}, {\"transfer_id\": \"T0012\", \"sender\": \"A-3881\", \"receiver\": \"A-9278\", \"amount_minor\": 76000, \"event_time_ms\": 1794304720000, \"device\": \"D-530\"}, {\"transfer_id\": \"T0013\", \"sender\": \"A-5989\", \"receiver\": \"A-2501\", \"amount_minor\": 1999, \"event_time_ms\": 1794304830000, \"device\": \"D-998\"}, {\"transfer_id\": \"T0014\", \"sender\": \"A-9278\", \"receiver\": \"A-5092\", \"amount_minor\": 210000, \"event_time_ms\": 1794305000000, \"device\": \"D-568\"}, {\"transfer_id\": \"T0015\", \"sender\": \"A-5092\", \"receiver\": \"A-2897\", \"amount_minor\": 206000, \"event_time_ms\": 1794305150000, \"device\": \"D-568\"}, {\"transfer_id\": \"T0016\", \"sender\": \"A-2897\", \"receiver\": \"A-4989\", \"amount_minor\": 202000, \"event_time_ms\": 1794305290000, \"device\": \"D-568\"}, {\"transfer_id\": \"T0017\", \"sender\": \"A-2278\", \"receiver\": \"A-5305\", \"amount_minor\": 58148, \"event_time_ms\": 1794305311000, \"device\": \"D-955\"}, {\"transfer_id\": \"T0018\", \"sender\": \"A-2104\", \"receiver\": \"A-4767\", \"amount_minor\": 1263, \"event_time_ms\": 1794305512000, \"device\": \"D-786\"}, {\"transfer_id\": \"T0019\", \"sender\": \"A-9652\", \"receiver\": \"A-5093\", \"amount_minor\": 2350, \"event_time_ms\": 1794305700000, \"device\": \"D-619\"}, {\"transfer_id\": \"T0020\", \"sender\": \"A-4325\", \"receiver\": \"A-4767\", \"amount_minor\": 8954, \"event_time_ms\": 1794305793000, \"device\": \"D-963\"}, {\"transfer_id\": \"T0021\", \"sender\": \"A-6591\", \"receiver\": \"A-9862\", \"amount_minor\": 5100, \"event_time_ms\": 1794308700000, \"device\": \"D-386\"}, {\"transfer_id\": \"T0022\", \"sender\": \"A-2104\", \"receiver\": \"A-4325\", \"amount_minor\": 44916, \"event_time_ms\": 1794308760000, \"device\": \"D-786\"}, {\"transfer_id\": \"T0023\", \"sender\": \"A-4604\", \"receiver\": \"A-4767\", \"amount_minor\": 896, \"event_time_ms\": 1794309127000, \"device\": \"D-906\"}, {\"transfer_id\": \"T0024\", \"sender\": \"A-1269\", \"receiver\": \"A-9862\", \"amount_minor\": 5200, \"event_time_ms\": 1794309300000, \"device\": \"D-944\"}, {\"transfer_id\": \"T0025\", \"sender\": \"A-2788\", \"receiver\": \"A-9862\", \"amount_minor\": 5300, \"event_time_ms\": 1794309900000, \"device\": \"D-622\"}, {\"transfer_id\": \"T0026\", \"sender\": \"A-6361\", \"receiver\": \"A-9862\", \"amount_minor\": 5400, \"event_time_ms\": 1794310500000, \"device\": \"D-424\"}, {\"transfer_id\": \"T0027\", \"sender\": \"A-2952\", \"receiver\": \"A-5093\", \"amount_minor\": 4120, \"event_time_ms\": 1794310800000, \"device\": \"D-619\"}, {\"transfer_id\": \"T0028\", \"sender\": \"A-4101\", \"receiver\": \"A-7763\", \"amount_minor\": 30000, \"event_time_ms\": 1794312000000, \"device\": \"D-371\"}, {\"transfer_id\": \"T0029\", \"sender\": \"A-4325\", \"receiver\": \"A-5610\", \"amount_minor\": 13369, \"event_time_ms\": 1794312937000, \"device\": \"D-963\"}, {\"transfer_id\": \"T0030\", \"sender\": \"A-7763\", \"receiver\": \"A-7167\", \"amount_minor\": 29000, \"event_time_ms\": 1794314700000, \"device\": \"D-268\"}, {\"transfer_id\": \"T0031\", \"sender\": \"A-2104\", \"receiver\": \"A-8057\", \"amount_minor\": 39469, \"event_time_ms\": 1794314704000, \"device\": \"D-786\"}, {\"transfer_id\": \"T0032\", \"sender\": \"A-3801\", \"receiver\": \"A-6516\", \"amount_minor\": 32528, \"event_time_ms\": 1794315573000, \"device\": \"D-451\"}, {\"transfer_id\": \"T0033\", \"sender\": \"A-2278\", \"receiver\": \"A-5305\", \"amount_minor\": 47190, \"event_time_ms\": 1794316591000, \"device\": \"D-955\"}, {\"transfer_id\": \"T0034\", \"sender\": \"A-7781\", \"receiver\": \"A-6516\", \"amount_minor\": 46352, \"event_time_ms\": 1794316943000, \"device\": \"D-659\"}, {\"transfer_id\": \"T0035\", \"sender\": \"A-8770\", \"receiver\": \"A-9895\", \"amount_minor\": 2500, \"event_time_ms\": 1794319340000, \"device\": \"D-535\"}, {\"transfer_id\": \"T0036\", \"sender\": \"A-4399\", \"receiver\": \"A-9895\", \"amount_minor\": 2500, \"event_time_ms\": 1794319745000, \"device\": \"D-450\"}, {\"transfer_id\": \"T0037\", \"sender\": \"A-4792\", \"receiver\": \"A-9895\", \"amount_minor\": 2500, \"event_time_ms\": 1794320140000, \"device\": \"D-887\"}, {\"transfer_id\": \"T0038\", \"sender\": \"A-9088\", \"receiver\": \"A-9895\", \"amount_minor\": 2500, \"event_time_ms\": 1794320530000, \"device\": \"D-443\"}, {\"transfer_id\": \"T0039\", \"sender\": \"A-8060\", \"receiver\": \"A-9895\", \"amount_minor\": 2500, \"event_time_ms\": 1794321030000, \"device\": \"D-832\"}, {\"transfer_id\": \"T0040\", \"sender\": \"A-8166\", \"receiver\": \"A-9895\", \"amount_minor\": 2500, \"event_time_ms\": 1794321660000, \"device\": \"D-413\"}, {\"transfer_id\": \"T0041\", \"sender\": \"A-9895\", \"receiver\": \"A-1415\", \"amount_minor\": 14000, \"event_time_ms\": 1794322200000, \"device\": \"D-699\"}, {\"transfer_id\": \"T0042\", \"sender\": \"A-5845\", \"receiver\": \"A-1823\", \"amount_minor\": 1200, \"event_time_ms\": 1794323100000, \"device\": \"D-758\"}, {\"transfer_id\": \"T0043\", \"sender\": \"A-1893\", \"receiver\": \"A-1823\", \"amount_minor\": 1210, \"event_time_ms\": 1794323520000, \"device\": \"D-793\"}, {\"transfer_id\": \"T0044\", \"sender\": \"A-7755\", \"receiver\": \"A-1823\", \"amount_minor\": 1220, \"event_time_ms\": 1794324000000, \"device\": \"D-733\"}, {\"transfer_id\": \"T0045\", \"sender\": \"A-5559\", \"receiver\": \"A-3801\", \"amount_minor\": 42310, \"event_time_ms\": 1794324391000, \"device\": \"D-160\"}, {\"transfer_id\": \"T0046\", \"sender\": \"A-5845\", \"receiver\": \"A-1823\", \"amount_minor\": 1230, \"event_time_ms\": 1794324660000, \"device\": \"D-758\"}, {\"transfer_id\": \"T0047\", \"sender\": \"A-1893\", \"receiver\": \"A-1823\", \"amount_minor\": 1240, \"event_time_ms\": 1794325440000, \"device\": \"D-793\"}, {\"transfer_id\": \"T0048\", \"sender\": \"A-7755\", \"receiver\": \"A-1823\", \"amount_minor\": 1250, \"event_time_ms\": 1794325920000, \"device\": \"D-733\"}, {\"transfer_id\": \"T0049\", \"sender\": \"A-4325\", \"receiver\": \"A-2278\", \"amount_minor\": 17642, \"event_time_ms\": 1794327069000, \"device\": \"D-963\"}, {\"transfer_id\": \"T0050\", \"sender\": \"A-4767\", \"receiver\": \"A-7781\", \"amount_minor\": 58909, \"event_time_ms\": 1794327342000, \"device\": \"D-373\"}, {\"transfer_id\": \"T0051\", \"sender\": \"A-7781\", \"receiver\": \"A-5610\", \"amount_minor\": 45137, \"event_time_ms\": 1794328544000, \"device\": \"D-659\"}, {\"transfer_id\": \"T0052\", \"sender\": \"A-6516\", \"receiver\": \"A-5305\", \"amount_minor\": 26385, \"event_time_ms\": 1794328885000, \"device\": \"D-465\"}, {\"transfer_id\": \"T0053\", \"sender\": \"A-3801\", \"receiver\": \"A-8057\", \"amount_minor\": 34427, \"event_time_ms\": 1794330385000, \"device\": \"D-451\"}, {\"transfer_id\": \"T0054\", \"sender\": \"A-6516\", \"receiver\": \"A-7781\", \"amount_minor\": 44750, \"event_time_ms\": 1794332199000, \"device\": \"D-465\"}, {\"transfer_id\": \"T0055\", \"sender\": \"A-1415\", \"receiver\": \"A-9514\", \"amount_minor\": 90000, \"event_time_ms\": 1794333900000, \"device\": \"D-785\"}], \"row_count\": 55, \"truncated\": false}",
+    "seconds": 0.0
+  },
+  {
+    "request": 3,
+    "response": {
+      "id": "msg_bdrk_kbfvxrkgfevo4ayr3ao34a4ym3abhduwri5gvk4ll5fny73jtfja",
+      "container": null,
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_bdrk_01MJaidiaRDsf1b1rSBpXEd2",
+          "input": {
+            "findings": [
+              {
+                "id": "F1",
+                "statement": "Scope: the bounded replay run:72cf0e4b91a3 (dataset sha256 72cf0e4b…c880, 55 events, 3/3 jobs completed, clink exit status 0, not cancelled; fan-in threshold 5 distinct senders per 3,600,000 ms event-time window, onward max gap 1,800,000 ms). It holds 55 transfers, 48 accounts, 35 devices, 14 onward links and 2 fan-in alerts. Everything below holds only for this dataset as this run processed it.",
+                "claim_ids": [
+                  "C1",
+                  "C2",
+                  "C3",
+                  "C4",
+                  "C5"
+                ]
+              },
+              {
+                "id": "F2",
+                "statement": "Alert fan_in:A-9278:1794301200000: account A-9278, window 1794301200000–1794304800000. It counts 6 distinct senders and 6 transfers totalling 357000 minor units: T0002, T0003, T0006, T0010, T0011 and T0012. The amounts differ (38000 to 89000).",
+                "claim_ids": [
+                  "I1",
+                  "E2",
+                  "E3",
+                  "E6",
+                  "E10",
+                  "E11",
+                  "E12"
+                ]
+              },
+              {
+                "id": "F3",
+                "statement": "Alert fan_in:A-9895:1794319200000: account A-9895, window 1794319200000–1794322800000. It counts 6 distinct senders and 6 transfers totalling 15000 minor units: T0035 to T0040, each exactly 2500.",
+                "claim_ids": [
+                  "I2",
+                  "E35",
+                  "E36",
+                  "E37",
+                  "E38",
+                  "E39",
+                  "E40"
+                ]
+              },
+              {
+                "id": "F4",
+                "statement": "Onward links for A-9278: every one of its 6 contributing transfers is linked to an outgoing transfer. T0002, T0003 and T0006 link to T0007 (A-9278→A-5092, 138000), then T0008 (A-5092→A-2897, 135000), then T0009 (A-2897→A-4989, 132000). T0010, T0011 and T0012 link to T0014 (A-9278→A-5092, 210000), then T0015 (A-5092→A-2897, 206000), then T0016 (A-2897→A-4989, 202000). The longest chain has 3 onward links. Both routes end at A-4989: neither T0009 nor T0016 is passed on. The accounts on the routes are A-9278, A-5092, A-2897 and A-4989.",
+                "claim_ids": [
+                  "P1",
+                  "P2",
+                  "R1",
+                  "E7",
+                  "E8",
+                  "E9",
+                  "E14",
+                  "E15",
+                  "E16",
+                  "AB1",
+                  "AB2"
+                ]
+              },
+              {
+                "id": "F5",
+                "statement": "Onward links for A-9895: only T0038, T0039 and T0040 link onward, all to T0041 (A-9895→A-1415, 14000). T0041 is not passed on. T0035, T0036 and T0037 have no onward link, so for them the record ends at A-9895. The longest chain has 1 onward link. The end points are A-1415, plus A-9895 for the three unlinked transfers. The accounts on the routes are A-9895 and A-1415.",
+                "claim_ids": [
+                  "P3",
+                  "R2",
+                  "E41",
+                  "AB3",
+                  "AB4"
+                ]
+              },
+              {
+                "id": "F6",
+                "statement": "Shared devices, A-9278 routes: device D-568 sent all six outgoing transfers, from three different route accounts: A-9278 (T0007, T0014), A-5092 (T0008, T0015) and A-2897 (T0009, T0016). The fourth route account, A-4989, sends nothing in this dataset.",
+                "claim_ids": [
+                  "S1",
+                  "E7",
+                  "E8",
+                  "E9",
+                  "E14",
+                  "E15",
+                  "E16"
+                ]
+              },
+              {
+                "id": "F7",
+                "statement": "Shared devices, A-9895 routes: no device was used by two or more route accounts. A-9895 sent from D-699 (T0041). A-1415 sent from D-785 (T0055, to A-9514, 90000). T0055 is not recorded as an onward link from T0041, since it comes 11,700,000 ms after T0041, well past the 1,800,000 ms limit.",
+                "claim_ids": [
+                  "AB5",
+                  "E41",
+                  "E55",
+                  "AB4"
+                ]
+              },
+              {
+                "id": "F8",
+                "statement": "What tells the two alerts apart: both show 6 senders and 6 transfers in one hour. But A-9278 has (a) all of its incoming transfers linked onward, (b) a chain of 3 hops in two separate waves through the same accounts A-9278 → A-5092 → A-2897 → A-4989, (c) each hop forwarding a little less than the amount before it (141500 in, then 138000 → 135000 → 132000; 215500 in, then 210000 → 206000 → 202000), each within 355,000 ms or less of the last inflow of its wave, and (d) one device, D-568, behind every outgoing transfer from three different route accounts. A-9895 instead has six identical small credits, only half of them linked onward, a single 1-hop link to A-1415, and no shared device on its route. The equal indicator values hide these differences in structure.",
+                "claim_ids": [
+                  "I1",
+                  "I2",
+                  "R1",
+                  "R2",
+                  "S1",
+                  "AB5",
+                  "P1",
+                  "P2",
+                  "P3"
+                ]
+              },
+              {
+                "id": "F9",
+                "statement": "Other accounts with several incoming senders did not reach the threshold and have no fan-in indicator: A-9862 (4 senders: T0021, T0024, T0025, T0026) and A-1823 (3 senders, 6 transfers). A-4989, where A-9278's routes end, also has no indicator.",
+                "claim_ids": [
+                  "AB6",
+                  "AB7",
+                  "AB8"
+                ]
+              }
+            ],
+            "hypotheses": [
+              {
+                "id": "H1",
+                "statement": "The A-9278 pattern fits a pass-through or layering route under shared control: money from several senders is collected and forwarded in a few minutes, across three hops, from one device, ending at A-4989. The data does not establish control, ownership or fraud. A shared device is only a recorded relationship.",
+                "references": [
+                  "F4",
+                  "F6",
+                  "F8",
+                  "S1"
+                ]
+              },
+              {
+                "id": "H2",
+                "statement": "The A-9895 pattern (six identical 2500 payments from different senders, with one 14000 payment out) may be ordinary collection, such as a group payment or a split bill. It is weaker evidence of layering than A-9278. This is an interpretation, not a finding.",
+                "references": [
+                  "F3",
+                  "F5",
+                  "F7"
+                ]
+              },
+              {
+                "id": "H3",
+                "statement": "The small drop at each A-9278 hop (about 3000–4000 per hop) could be fees or skimming. The data does not record why.",
+                "references": [
+                  "F4"
+                ]
+              }
+            ],
+            "unresolved": [
+              {
+                "id": "U1",
+                "question": "Where did T0041's funding come from? It pays 14000, but its three linked credits (T0038–T0040) total only 7500. Onward links are matched on time only and do not show which money was actually forwarded.",
+                "references": [
+                  "P3",
+                  "E41"
+                ]
+              },
+              {
+                "id": "U2",
+                "question": "What happens to the money at A-4989 and A-1415 outside this bounded replay? A-4989 sends nothing in the dataset. A-1415's later T0055 (90000 to A-9514) is too late to be linked, and its source is not recorded.",
+                "references": [
+                  "AB2",
+                  "AB4",
+                  "E55"
+                ]
+              },
+              {
+                "id": "U3",
+                "question": "Who controls device D-568, and do A-9278, A-5092 and A-2897 share one owner? The data records device use only, not identity.",
+                "references": [
+                  "S1"
+                ]
+              }
+            ],
+            "claims": {
+              "event": [
+                {
+                  "id": "E2",
+                  "transfer": "T0002",
+                  "sender": "A-4452",
+                  "receiver": "A-9278",
+                  "amount_minor": 42000,
+                  "event_time_ms": 1794301510000,
+                  "device": "D-940"
+                },
+                {
+                  "id": "E3",
+                  "transfer": "T0003",
+                  "sender": "A-4366",
+                  "receiver": "A-9278",
+                  "amount_minor": 61500,
+                  "event_time_ms": 1794301840000,
+                  "device": "D-479"
+                },
+                {
+                  "id": "E6",
+                  "transfer": "T0006",
+                  "sender": "A-7266",
+                  "receiver": "A-9278",
+                  "amount_minor": 38000,
+                  "event_time_ms": 1794302285000,
+                  "device": "D-307"
+                },
+                {
+                  "id": "E7",
+                  "transfer": "T0007",
+                  "sender": "A-9278",
+                  "receiver": "A-5092",
+                  "amount_minor": 138000,
+                  "event_time_ms": 1794302640000,
+                  "device": "D-568"
+                },
+                {
+                  "id": "E8",
+                  "transfer": "T0008",
+                  "sender": "A-5092",
+                  "receiver": "A-2897",
+                  "amount_minor": 135000,
+                  "event_time_ms": 1794302790000,
+                  "device": "D-568"
+                },
+                {
+                  "id": "E9",
+                  "transfer": "T0009",
+                  "sender": "A-2897",
+                  "receiver": "A-4989",
+                  "amount_minor": 132000,
+                  "event_time_ms": 1794302985000,
+                  "device": "D-568"
+                },
+                {
+                  "id": "E10",
+                  "transfer": "T0010",
+                  "sender": "A-8133",
+                  "receiver": "A-9278",
+                  "amount_minor": 89000,
+                  "event_time_ms": 1794303450000,
+                  "device": "D-587"
+                },
+                {
+                  "id": "E11",
+                  "transfer": "T0011",
+                  "sender": "A-6801",
+                  "receiver": "A-9278",
+                  "amount_minor": 50500,
+                  "event_time_ms": 1794303855000,
+                  "device": "D-850"
+                },
+                {
+                  "id": "E12",
+                  "transfer": "T0012",
+                  "sender": "A-3881",
+                  "receiver": "A-9278",
+                  "amount_minor": 76000,
+                  "event_time_ms": 1794304720000,
+                  "device": "D-530"
+                },
+                {
+                  "id": "E14",
+                  "transfer": "T0014",
+                  "sender": "A-9278",
+                  "receiver": "A-5092",
+                  "amount_minor": 210000,
+                  "event_time_ms": 1794305000000,
+                  "device": "D-568"
+                },
+                {
+                  "id": "E15",
+                  "transfer": "T0015",
+                  "sender": "A-5092",
+                  "receiver": "A-2897",
+                  "amount_minor": 206000,
+                  "event_time_ms": 1794305150000,
+                  "device": "D-568"
+                },
+                {
+                  "id": "E16",
+                  "transfer": "T0016",
+                  "sender": "A-2897",
+                  "receiver": "A-4989",
+                  "amount_minor": 202000,
+                  "event_time_ms": 1794305290000,
+                  "device": "D-568"
+                },
+                {
+                  "id": "E35",
+                  "transfer": "T0035",
+                  "sender": "A-8770",
+                  "receiver": "A-9895",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794319340000,
+                  "device": "D-535"
+                },
+                {
+                  "id": "E36",
+                  "transfer": "T0036",
+                  "sender": "A-4399",
+                  "receiver": "A-9895",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794319745000,
+                  "device": "D-450"
+                },
+                {
+                  "id": "E37",
+                  "transfer": "T0037",
+                  "sender": "A-4792",
+                  "receiver": "A-9895",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794320140000,
+                  "device": "D-887"
+                },
+                {
+                  "id": "E38",
+                  "transfer": "T0038",
+                  "sender": "A-9088",
+                  "receiver": "A-9895",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794320530000,
+                  "device": "D-443"
+                },
+                {
+                  "id": "E39",
+                  "transfer": "T0039",
+                  "sender": "A-8060",
+                  "receiver": "A-9895",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794321030000,
+                  "device": "D-832"
+                },
+                {
+                  "id": "E40",
+                  "transfer": "T0040",
+                  "sender": "A-8166",
+                  "receiver": "A-9895",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794321660000,
+                  "device": "D-413"
+                },
+                {
+                  "id": "E41",
+                  "transfer": "T0041",
+                  "sender": "A-9895",
+                  "receiver": "A-1415",
+                  "amount_minor": 14000,
+                  "event_time_ms": 1794322200000,
+                  "device": "D-699"
+                },
+                {
+                  "id": "E55",
+                  "transfer": "T0055",
+                  "sender": "A-1415",
+                  "receiver": "A-9514",
+                  "amount_minor": 90000,
+                  "event_time_ms": 1794333900000,
+                  "device": "D-785"
+                }
+              ],
+              "indicator": [
+                {
+                  "id": "I1",
+                  "indicator": "fan_in:A-9278:1794301200000",
+                  "account": "A-9278",
+                  "window_start_ms": 1794301200000,
+                  "window_end_ms": 1794304800000,
+                  "senders": 6,
+                  "transfers": 6,
+                  "total_minor": 357000,
+                  "contributing": [
+                    "T0002",
+                    "T0003",
+                    "T0006",
+                    "T0010",
+                    "T0011",
+                    "T0012"
+                  ]
+                },
+                {
+                  "id": "I2",
+                  "indicator": "fan_in:A-9895:1794319200000",
+                  "account": "A-9895",
+                  "window_start_ms": 1794319200000,
+                  "window_end_ms": 1794322800000,
+                  "senders": 6,
+                  "transfers": 6,
+                  "total_minor": 15000,
+                  "contributing": [
+                    "T0035",
+                    "T0036",
+                    "T0037",
+                    "T0038",
+                    "T0039",
+                    "T0040"
+                  ]
+                }
+              ],
+              "onward_path": [
+                {
+                  "id": "P1",
+                  "transfers": [
+                    "T0002",
+                    "T0007",
+                    "T0008",
+                    "T0009"
+                  ],
+                  "from_indicator": "fan_in:A-9278:1794301200000",
+                  "comes_to_rest_at": "A-4989"
+                },
+                {
+                  "id": "P2",
+                  "transfers": [
+                    "T0012",
+                    "T0014",
+                    "T0015",
+                    "T0016"
+                  ],
+                  "from_indicator": "fan_in:A-9278:1794301200000",
+                  "comes_to_rest_at": "A-4989"
+                },
+                {
+                  "id": "P3",
+                  "transfers": [
+                    "T0040",
+                    "T0041"
+                  ],
+                  "from_indicator": "fan_in:A-9895:1794319200000",
+                  "comes_to_rest_at": "A-1415"
+                }
+              ],
+              "onward_reach": [
+                {
+                  "id": "R1",
+                  "indicator": "fan_in:A-9278:1794301200000",
+                  "max_depth": 3,
+                  "terminal_accounts": [
+                    "A-4989"
+                  ],
+                  "route_accounts": [
+                    "A-9278",
+                    "A-5092",
+                    "A-2897",
+                    "A-4989"
+                  ]
+                },
+                {
+                  "id": "R2",
+                  "indicator": "fan_in:A-9895:1794319200000",
+                  "max_depth": 1,
+                  "terminal_accounts": [
+                    "A-1415",
+                    "A-9895"
+                  ],
+                  "route_accounts": [
+                    "A-9895",
+                    "A-1415"
+                  ]
+                }
+              ],
+              "shared_device": [
+                {
+                  "id": "S1",
+                  "device": "D-568",
+                  "accounts": [
+                    "A-9278",
+                    "A-5092",
+                    "A-2897"
+                  ],
+                  "on_route_of": "fan_in:A-9278:1794301200000"
+                }
+              ],
+              "absence": [
+                {
+                  "id": "AB1",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T0009"
+                },
+                {
+                  "id": "AB2",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T0016"
+                },
+                {
+                  "id": "AB3",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T0035"
+                },
+                {
+                  "id": "AB4",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T0041"
+                },
+                {
+                  "id": "AB5",
+                  "kind": "no_shared_device_on_route",
+                  "subject": "fan_in:A-9895:1794319200000"
+                },
+                {
+                  "id": "AB6",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-9862"
+                },
+                {
+                  "id": "AB7",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-1823"
+                },
+                {
+                  "id": "AB8",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-4989"
+                }
+              ],
+              "count": [
+                {
+                  "id": "C1",
+                  "pattern": "fan_in_alerts",
+                  "value": 2
+                },
+                {
+                  "id": "C2",
+                  "pattern": "transfers",
+                  "value": 55
+                },
+                {
+                  "id": "C3",
+                  "pattern": "onward_links",
+                  "value": 14
+                },
+                {
+                  "id": "C4",
+                  "pattern": "accounts",
+                  "value": 48
+                },
+                {
+                  "id": "C5",
+                  "pattern": "devices",
+                  "value": 35
+                }
+              ]
+            }
+          },
+          "name": "submit_case_note",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 5100
+        },
+        "cache_creation_input_tokens": 5100,
+        "cache_read_input_tokens": 5067,
+        "input_tokens": 2,
+        "output_tokens": 6719,
+        "output_tokens_details": {
+          "thinking_tokens": 1800
+        },
+        "service_tier": "standard"
+      }
+    }
+  }
+]

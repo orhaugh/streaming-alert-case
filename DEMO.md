@@ -46,15 +46,16 @@ T0002, T0007, T0008, T0009."
 
 ## 4. The agent's case note (1:05 to 1:25)
 
-Needs the recorded run in `runs/recorded/` (see the README's status).
+The recorded case note, made through Amazon Bedrock on 13 November 2026.
 
 ```bash
-sed -n '1,40p' runs/recorded/case-note/case_note.md
+sed -n '/^## Findings/,/^## Unresolved/p' runs/recorded/case-note/case_note.md | cut -c1-160
 ```
 
 Say: "An agent queried the same store and wrote this case note: findings,
 hypotheses and unresolved questions kept apart. Every finding cites
-structured claims, and the checker's verdict sits beside each claim."
+structured claims, and the checker's verdict sits beside each claim: all 50
+supported. The hypotheses say what the data does not establish."
 
 ## 5. The checker refuses what is not true (1:25 to 1:50)
 

@@ -1,0 +1,324 @@
+[
+  {
+    "claim": "E-T0002",
+    "type": "event",
+    "status": "supported",
+    "events": "T0002 as recorded",
+    "graph": "T0002 as recorded"
+  },
+  {
+    "claim": "E-T0003",
+    "type": "event",
+    "status": "supported",
+    "events": "T0003 as recorded",
+    "graph": "T0003 as recorded"
+  },
+  {
+    "claim": "E-T0006",
+    "type": "event",
+    "status": "supported",
+    "events": "T0006 as recorded",
+    "graph": "T0006 as recorded"
+  },
+  {
+    "claim": "E-T0007",
+    "type": "event",
+    "status": "supported",
+    "events": "T0007 as recorded",
+    "graph": "T0007 as recorded"
+  },
+  {
+    "claim": "E-T0008",
+    "type": "event",
+    "status": "supported",
+    "events": "T0008 as recorded",
+    "graph": "T0008 as recorded"
+  },
+  {
+    "claim": "E-T0009",
+    "type": "event",
+    "status": "supported",
+    "events": "T0009 as recorded",
+    "graph": "T0009 as recorded"
+  },
+  {
+    "claim": "E-T0010",
+    "type": "event",
+    "status": "supported",
+    "events": "T0010 as recorded",
+    "graph": "T0010 as recorded"
+  },
+  {
+    "claim": "E-T0011",
+    "type": "event",
+    "status": "supported",
+    "events": "T0011 as recorded",
+    "graph": "T0011 as recorded"
+  },
+  {
+    "claim": "E-T0012",
+    "type": "event",
+    "status": "supported",
+    "events": "T0012 as recorded",
+    "graph": "T0012 as recorded"
+  },
+  {
+    "claim": "E-T0014",
+    "type": "event",
+    "status": "supported",
+    "events": "T0014 as recorded",
+    "graph": "T0014 as recorded"
+  },
+  {
+    "claim": "E-T0015",
+    "type": "event",
+    "status": "supported",
+    "events": "T0015 as recorded",
+    "graph": "T0015 as recorded"
+  },
+  {
+    "claim": "E-T0016",
+    "type": "event",
+    "status": "supported",
+    "events": "T0016 as recorded",
+    "graph": "T0016 as recorded"
+  },
+  {
+    "claim": "E-T0019",
+    "type": "event",
+    "status": "supported",
+    "events": "T0019 as recorded",
+    "graph": "T0019 as recorded"
+  },
+  {
+    "claim": "E-T0027",
+    "type": "event",
+    "status": "supported",
+    "events": "T0027 as recorded",
+    "graph": "T0027 as recorded"
+  },
+  {
+    "claim": "E-T0035",
+    "type": "event",
+    "status": "supported",
+    "events": "T0035 as recorded",
+    "graph": "T0035 as recorded"
+  },
+  {
+    "claim": "E-T0036",
+    "type": "event",
+    "status": "supported",
+    "events": "T0036 as recorded",
+    "graph": "T0036 as recorded"
+  },
+  {
+    "claim": "E-T0037",
+    "type": "event",
+    "status": "supported",
+    "events": "T0037 as recorded",
+    "graph": "T0037 as recorded"
+  },
+  {
+    "claim": "E-T0038",
+    "type": "event",
+    "status": "supported",
+    "events": "T0038 as recorded",
+    "graph": "T0038 as recorded"
+  },
+  {
+    "claim": "E-T0039",
+    "type": "event",
+    "status": "supported",
+    "events": "T0039 as recorded",
+    "graph": "T0039 as recorded"
+  },
+  {
+    "claim": "E-T0040",
+    "type": "event",
+    "status": "supported",
+    "events": "T0040 as recorded",
+    "graph": "T0040 as recorded"
+  },
+  {
+    "claim": "E-T0041",
+    "type": "event",
+    "status": "supported",
+    "events": "T0041 as recorded",
+    "graph": "T0041 as recorded"
+  },
+  {
+    "claim": "E-T0055",
+    "type": "event",
+    "status": "supported",
+    "events": "T0055 as recorded",
+    "graph": "T0055 as recorded"
+  },
+  {
+    "claim": "I1",
+    "type": "indicator",
+    "status": "supported",
+    "events": "fan_in:A-9278:1794301200000 as recorded",
+    "graph": "fan_in:A-9278:1794301200000 as recorded"
+  },
+  {
+    "claim": "I2",
+    "type": "indicator",
+    "status": "supported",
+    "events": "fan_in:A-9895:1794319200000 as recorded",
+    "graph": "fan_in:A-9895:1794319200000 as recorded"
+  },
+  {
+    "claim": "P1",
+    "type": "onward_path",
+    "status": "supported",
+    "events": "3 recorded onward link(s)",
+    "graph": "3 recorded onward link(s)"
+  },
+  {
+    "claim": "P2",
+    "type": "onward_path",
+    "status": "supported",
+    "events": "3 recorded onward link(s)",
+    "graph": "3 recorded onward link(s)"
+  },
+  {
+    "claim": "P3",
+    "type": "onward_path",
+    "status": "supported",
+    "events": "1 recorded onward link(s)",
+    "graph": "1 recorded onward link(s)"
+  },
+  {
+    "claim": "R1",
+    "type": "onward_reach",
+    "status": "supported",
+    "events": "fan_in:A-9278:1794301200000's routes as recorded",
+    "graph": "fan_in:A-9278:1794301200000's routes as recorded"
+  },
+  {
+    "claim": "R2",
+    "type": "onward_reach",
+    "status": "unsupported",
+    "events": "terminal_accounts are ['A-1415'], not ['A-1415', 'A-9895']",
+    "graph": "terminal_accounts are ['A-1415'], not ['A-1415', 'A-9895']"
+  },
+  {
+    "claim": "SD1",
+    "type": "shared_device",
+    "status": "supported",
+    "events": "D-568 sent from ['A-2897', 'A-5092', 'A-9278']",
+    "graph": "D-568 sent from ['A-2897', 'A-5092', 'A-9278']"
+  },
+  {
+    "claim": "SD3",
+    "type": "shared_device",
+    "status": "supported",
+    "events": "D-619 sent from ['A-2952', 'A-9652']",
+    "graph": "D-619 sent from ['A-2952', 'A-9652']"
+  },
+  {
+    "claim": "AB-SD2",
+    "type": "absence",
+    "status": "supported",
+    "events": "no device is shared between accounts on fan_in:A-9895:1794319200000's routes",
+    "graph": "no device is shared between accounts on fan_in:A-9895:1794319200000's routes"
+  },
+  {
+    "claim": "AB-T0009",
+    "type": "absence",
+    "status": "supported",
+    "events": "T0009 was not passed on",
+    "graph": "T0009 was not passed on"
+  },
+  {
+    "claim": "AB-T0016",
+    "type": "absence",
+    "status": "supported",
+    "events": "T0016 was not passed on",
+    "graph": "T0016 was not passed on"
+  },
+  {
+    "claim": "AB-T0041",
+    "type": "absence",
+    "status": "supported",
+    "events": "T0041 was not passed on",
+    "graph": "T0041 was not passed on"
+  },
+  {
+    "claim": "AB-T0035",
+    "type": "absence",
+    "status": "supported",
+    "events": "T0035 was not passed on",
+    "graph": "T0035 was not passed on"
+  },
+  {
+    "claim": "AB-T0036",
+    "type": "absence",
+    "status": "supported",
+    "events": "T0036 was not passed on",
+    "graph": "T0036 was not passed on"
+  },
+  {
+    "claim": "AB-T0037",
+    "type": "absence",
+    "status": "supported",
+    "events": "T0037 was not passed on",
+    "graph": "T0037 was not passed on"
+  },
+  {
+    "claim": "AB-A1823",
+    "type": "absence",
+    "status": "supported",
+    "events": "A-1823 has no fan-in indicator",
+    "graph": "A-1823 has no fan-in indicator"
+  },
+  {
+    "claim": "AB-A4989",
+    "type": "absence",
+    "status": "supported",
+    "events": "A-4989 has no fan-in indicator",
+    "graph": "A-4989 has no fan-in indicator"
+  },
+  {
+    "claim": "AB-A1415",
+    "type": "absence",
+    "status": "supported",
+    "events": "A-1415 has no fan-in indicator",
+    "graph": "A-1415 has no fan-in indicator"
+  },
+  {
+    "claim": "C-cnt-alerts",
+    "type": "count",
+    "status": "supported",
+    "events": "fan_in_alerts is 2",
+    "graph": "fan_in_alerts is 2"
+  },
+  {
+    "claim": "C-cnt-transfers",
+    "type": "count",
+    "status": "supported",
+    "events": "transfers is 55",
+    "graph": "transfers is 55"
+  },
+  {
+    "claim": "C-cnt-links",
+    "type": "count",
+    "status": "supported",
+    "events": "onward_links is 14",
+    "graph": "onward_links is 14"
+  },
+  {
+    "claim": "C-cnt-accounts",
+    "type": "count",
+    "status": "supported",
+    "events": "accounts is 48",
+    "graph": "accounts is 48"
+  },
+  {
+    "claim": "C-cnt-devices",
+    "type": "count",
+    "status": "supported",
+    "events": "devices is 35",
+    "graph": "devices is 35"
+  }
+]
