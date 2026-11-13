@@ -56,6 +56,8 @@ def main() -> int:
     parser.add_argument("--tables", type=Path, default=tables.TABLES)
     parser.add_argument("--planted", type=Path, default=Path("claims/planted.json"))
     parser.add_argument("--runs", type=Path, default=Path("runs/recorded"))
+    parser.add_argument("--superseded", type=Path, default=Path("runs/superseded"),
+                        help="recorded runs kept for the record, made with an earlier version of the prompt")
     args = parser.parse_args()
 
     report = Report()
@@ -88,30 +90,32 @@ def main() -> int:
     else:
         report.record("same records as the store", False, "missing: run export_tables.py")
 
-    report.section(f"Recorded agent runs, {args.runs}")
-    runs = recorded_runs(args.runs)
-    if not runs:
-        print("      none recorded")
-    for run in runs:
-        meta = json.loads((run / "meta.json").read_text())
-        output = json.loads((run / "output.json").read_text()) if (run / "output.json").exists() else None
-        claims = flatten_claims(output["claims"]) if output else []
-        again = check_claims(claims, events, graph_facts)
-        recorded_check = json.loads((run / "check.json").read_text())
-        recorded_score = json.loads((run / "score.json").read_text())
-        rescored = score(output, events, graph_facts, meta["effort"])
-        same = again == recorded_check and rescored == recorded_score
-        name = str(run.relative_to(args.runs))
-        report.record(name, same,
-                      f"{meta['arm']} arm, {meta['status']}: correctness {rescored['correctness']:.2f}, "
-                      f"{rescored['supported']} of {rescored['claims']} claims supported, reference validity "
-                      f"{rescored['reference_validity']}; verdicts and scores equal the recorded ones"
-                      if same else "the verdicts or scores differ from the ones recorded beside the run")
-    for summary_path in sorted(args.runs.glob("**/summary.json")):
-        same = summarise(summary_path.parent) == json.loads(summary_path.read_text())
-        report.record(str(summary_path.relative_to(args.runs)), same,
-                      "the comparison's summary equals the one computed again from its runs' scores"
-                      if same else "the summary differs from the one computed from its runs' scores")
+    for root, title in ((args.runs, "Recorded agent runs"), (args.superseded, "Superseded agent runs")):
+        if root == args.superseded and not root.exists():
+            continue
+        report.section(f"{title}, {root}")
+        runs = recorded_runs(root)
+        if not runs:
+            print("      none recorded")
+        for run in runs:
+            meta = json.loads((run / "meta.json").read_text())
+            output = json.loads((run / "output.json").read_text()) if (run / "output.json").exists() else None
+            claims = flatten_claims(output["claims"]) if output else []
+            again = check_claims(claims, events, graph_facts)
+            recorded_check = json.loads((run / "check.json").read_text())
+            recorded_score = json.loads((run / "score.json").read_text())
+            rescored = score(output, events, graph_facts, meta["effort"])
+            same = again == recorded_check and rescored == recorded_score
+            report.record(str(run.relative_to(root)), same,
+                          f"{meta['arm']} arm, {meta['status']}: correctness {rescored['correctness']:.2f}, "
+                          f"{rescored['supported']} of {rescored['claims']} claims supported, reference validity "
+                          f"{rescored['reference_validity']}; verdicts and scores equal the recorded ones"
+                          if same else "the verdicts or scores differ from the ones recorded beside the run")
+        for summary_path in sorted(root.glob("**/summary.json")):
+            same = summarise(summary_path.parent) == json.loads(summary_path.read_text())
+            report.record(str(summary_path.relative_to(root)), same,
+                          "the comparison's summary equals the one computed again from its runs' scores"
+                          if same else "the summary differs from the one computed from its runs' scores")
 
     passed = sum(report.results)
     print(f"\n{passed} of {len(report.results)} checks passed")
