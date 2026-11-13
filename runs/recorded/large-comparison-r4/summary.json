@@ -1,0 +1,186 @@
+{
+  "graph": {
+    "runs": 3,
+    "completed": 3,
+    "served_by_a_fallback_model": 0,
+    "mean": {
+      "correctness": 1.0,
+      "claims": 77.3333,
+      "unsupported_claims": 0,
+      "reference_validity": 1.0,
+      "tool_calls": 12.6667,
+      "tool_errors": 0,
+      "truncated_results": 0,
+      "stopped_queries": 0,
+      "path_queries": 2.3333,
+      "multi_hop_queries": 0.3333,
+      "requests": 9,
+      "input_tokens_total": 123025.3333,
+      "output_tokens": 14184,
+      "wall_seconds": 171.8333
+    },
+    "per_run": [
+      {
+        "run": "graph-1",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 76,
+        "unsupported_claims": 0,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 0,
+        "tool_calls": 13,
+        "tool_errors": 0,
+        "truncated_results": 0,
+        "stopped_queries": 0,
+        "path_queries": 1,
+        "multi_hop_queries": 0,
+        "requests": 9,
+        "input_tokens_total": 119818,
+        "output_tokens": 15060,
+        "wall_seconds": 182.8
+      },
+      {
+        "run": "graph-2",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 75,
+        "unsupported_claims": 0,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 0,
+        "tool_calls": 14,
+        "tool_errors": 0,
+        "truncated_results": 0,
+        "stopped_queries": 0,
+        "path_queries": 4,
+        "multi_hop_queries": 1,
+        "requests": 10,
+        "input_tokens_total": 139958,
+        "output_tokens": 13641,
+        "wall_seconds": 167.6
+      },
+      {
+        "run": "graph-3",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 81,
+        "unsupported_claims": 0,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 0,
+        "tool_calls": 11,
+        "tool_errors": 0,
+        "truncated_results": 0,
+        "stopped_queries": 0,
+        "path_queries": 2,
+        "multi_hop_queries": 0,
+        "requests": 8,
+        "input_tokens_total": 109300,
+        "output_tokens": 13851,
+        "wall_seconds": 165.1
+      }
+    ]
+  },
+  "table": {
+    "runs": 3,
+    "completed": 2,
+    "served_by_a_fallback_model": 0,
+    "mean": {
+      "correctness": 0.6667,
+      "claims": 50,
+      "unsupported_claims": 0,
+      "reference_validity": 1.0,
+      "tool_calls": 9,
+      "tool_errors": 0,
+      "truncated_results": 0,
+      "stopped_queries": 0,
+      "path_queries": 1,
+      "multi_hop_queries": 0.3333,
+      "requests": 6,
+      "input_tokens_total": 91338,
+      "output_tokens": 12314.6667,
+      "wall_seconds": 144.1667
+    },
+    "per_run": [
+      {
+        "run": "table-1",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 63,
+        "unsupported_claims": 0,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 0,
+        "tool_calls": 11,
+        "tool_errors": 0,
+        "truncated_results": 0,
+        "stopped_queries": 0,
+        "path_queries": 1,
+        "multi_hop_queries": 0,
+        "requests": 7,
+        "input_tokens_total": 113949,
+        "output_tokens": 11570,
+        "wall_seconds": 139.2
+      },
+      {
+        "run": "table-2",
+        "status": "completed",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 1.0,
+        "claims": 87,
+        "unsupported_claims": 0,
+        "reference_validity": 1.0,
+        "findings_citing_unsupported_claims": 0,
+        "tool_calls": 7,
+        "tool_errors": 0,
+        "truncated_results": 0,
+        "stopped_queries": 0,
+        "path_queries": 1,
+        "multi_hop_queries": 0,
+        "requests": 5,
+        "input_tokens_total": 75336,
+        "output_tokens": 12535,
+        "wall_seconds": 144.7
+      },
+      {
+        "run": "table-3",
+        "status": "malformed_case_note",
+        "models_served": [
+          "claude-opus-5-5"
+        ],
+        "fallback_used": false,
+        "correctness": 0.0,
+        "claims": 0,
+        "unsupported_claims": 0,
+        "reference_validity": null,
+        "findings_citing_unsupported_claims": 0,
+        "tool_calls": 9,
+        "tool_errors": 0,
+        "truncated_results": 0,
+        "stopped_queries": 0,
+        "path_queries": 1,
+        "multi_hop_queries": 1,
+        "requests": 6,
+        "input_tokens_total": 84729,
+        "output_tokens": 12839,
+        "wall_seconds": 148.6
+      }
+    ]
+  }
+}

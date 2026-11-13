@@ -1,0 +1,53 @@
+{
+  "case": "small",
+  "arm": "graph",
+  "status": "completed",
+  "stop_reason": "tool_use",
+  "provider": "bedrock",
+  "region": "ap-south-1",
+  "model_requested": "global.anthropic.claude-opus-5-5",
+  "models_served": [
+    "claude-opus-5-5"
+  ],
+  "fallback_used": false,
+  "effort_setting": "high",
+  "budgets": {
+    "max_tool_calls": 20,
+    "max_requests": 30,
+    "max_tokens_per_response": 16000,
+    "row_limit": 200,
+    "result_chars": 30000,
+    "query_seconds": 30
+  },
+  "effort": {
+    "tool_calls": 13,
+    "tool_errors": 0,
+    "truncated_results": 0,
+    "stopped_queries": 0,
+    "requests": 7,
+    "wall_seconds": 122.5,
+    "input_tokens": 16,
+    "output_tokens": 9976,
+    "cache_creation_input_tokens": 15443,
+    "cache_read_input_tokens": 58421
+  },
+  "started": "2026-11-13T19:26:04+00:00",
+  "versions": {
+    "anthropic": "2.8.0",
+    "relate-db": "1.0.1",
+    "python": "3.12.3"
+  },
+  "evidence": {
+    "path": "store/case.rl",
+    "sha256": "74e52360eccafb04fe27dbb78b4eb59922186a9d9f6e0c083ec0a1475d9db327",
+    "dataset_sha256": "72cf0e4b91a346f7a20187386d5b65f4821abf759b2752e13bee3a488efac880"
+  },
+  "prompt_sha256": {
+    "system": "df9545aa11f96664319cb5d9e4c6b935aa57f22e074851f199a9f58f5b7a6149",
+    "task": "101890b01a88ff655ced1466b6e5444821e7a366fec3fdb8e5f65c94d80f2caa",
+    "tool": "28b1a404179ab558f05484ac77d9d4fba02692b7e3160ef2567b5af1db2bd003",
+    "output_schema": "5a07175980f8bc625e5ffb60b8146a7c8622921ae4fd8f9921e26405e83e4da3"
+  },
+  "recorded": true,
+  "name": "small-case-note-r4"
+}

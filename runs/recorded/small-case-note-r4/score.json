@@ -1,0 +1,36 @@
+{
+  "completed": true,
+  "correctness": 1.0,
+  "key": {
+    "alert:fan_in:A-9278:1794301200000": true,
+    "alert:fan_in:A-9895:1794319200000": true,
+    "alerts:count": true,
+    "device:fan_in:A-9278:1794301200000:D-568": true,
+    "nodevice:fan_in:A-9895:1794319200000": true,
+    "reach:fan_in:A-9278:1794301200000": true,
+    "reach:fan_in:A-9895:1794319200000": true
+  },
+  "claims": 54,
+  "supported": 54,
+  "unsupported": 0,
+  "references": 63,
+  "valid_references": 63,
+  "reference_validity": 1.0,
+  "invalid_references": [],
+  "findings": 8,
+  "findings_without_claims": 0,
+  "findings_citing_missing_claims": 0,
+  "findings_citing_unsupported_claims": 0,
+  "effort": {
+    "tool_calls": 13,
+    "tool_errors": 0,
+    "truncated_results": 0,
+    "stopped_queries": 0,
+    "requests": 7,
+    "wall_seconds": 122.5,
+    "input_tokens": 16,
+    "output_tokens": 9976,
+    "cache_creation_input_tokens": 15443,
+    "cache_read_input_tokens": 58421
+  }
+}

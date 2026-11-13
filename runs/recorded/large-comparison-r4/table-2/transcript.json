@@ -1,0 +1,1372 @@
+[
+  {
+    "request": 1,
+    "response": {
+      "id": "msg_bdrk_xpgrmtnar6zp67vjpfp4n7ef5zafixfnhj5mtfvt2mhllle5rgia",
+      "container": null,
+      "content": [
+        {
+          "signature": "CAQS7wMKEggTEAEYAjgBQgh0aGlua2luZxIMhnEhGN2bGtZL2WHuGgy9131VUvhf8iRNqHoiMACa6tewktLYTUlj4i+lRBSYUwMpG0IGP07AiX550krlV77ELBGrr0gSV0K3NXABXSqKA//eeBcmbdFwRX1TfMODVp+HOVzIJ5mWqRj9CgKx0kA2G1Etk7BGYftLYQKlGLiT8oMANZLvfrxu6hH1Onj6dCMIdXcW1CfS2cnBvAV3kwlqdRa0gukROm+oOthonwNRSJHuEjIxt9G9UjAzU35JaUX8kpPyLH74gudWM1QIWGPznKz87ZsbVQkmPySf7xq3hNH7nIxF6M+FmGnEXMxTdUFge7bslHZbG0BewlzgJP8fA4gXeE4/wosOIG6pwLRAWUQcjqpGvZSX2ES1Wn5bKBSh0BE+FboK08voToByfkFlSYE0C0KCEjzuzZASl9Gp61uHU4w8oMl75ciigsuKj/8tKeCADBt5ahVUbxn1P4MB0p8bg49OYp2U4oOttSrsBwScESplRNXJA+neuLqd9xe0xWXUc71wMEkE6V4RZ1qXvTwFjoLVXN1dmX1Sd9vwKI44sDH/M4zOEJ7CH11zZzRVloNgdz2TxXDh9pKBjbMWH4V9aT00+931+3T87mahpc7lbCfZ0ADjBngYAQ==",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_bdrk_01FTWZWtPA9NULcaPMobacJd",
+          "input": {
+            "query": "SELECT * FROM run",
+            "purpose": "run record"
+          },
+          "name": "query",
+          "type": "tool_use"
+        },
+        {
+          "id": "toolu_bdrk_01BpgeA3tMotzPUni8iqU7hM",
+          "input": {
+            "query": "SELECT f.*, group_concat(c.transfer_id) FROM fan_in_alerts f JOIN alert_contributions c USING(indicator_id) GROUP BY f.indicator_id",
+            "purpose": "alerts with contributions"
+          },
+          "name": "query",
+          "type": "tool_use"
+        },
+        {
+          "id": "toolu_bdrk_01TbPMefc3nBDD3RsgouhcLN",
+          "input": {
+            "query": "SELECT (SELECT count(*) FROM transfers), (SELECT count(*) FROM onward_links), (SELECT count(*) FROM fan_in_alerts), (SELECT count(DISTINCT device) FROM transfers), (SELECT count(*) FROM (SELECT sender a FROM transfers UNION SELECT receiver FROM transfers))",
+            "purpose": "counts"
+          },
+          "name": "query",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 0
+        },
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 4425,
+        "input_tokens": 4,
+        "output_tokens": 419,
+        "output_tokens_details": {
+          "thinking_tokens": 17
+        },
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tool_call": 1,
+    "purpose": "run record",
+    "query": "SELECT * FROM run",
+    "ok": true,
+    "result": "{\"rows\": [{\"run_id\": \"run:5ce89f521e5e\", \"replay\": \"bounded\", \"dataset_sha256\": \"5ce89f521e5e38b3ba4de191dca63e9da118bb31f242d39dc59f2645a162b92f\", \"dataset_events\": 50000, \"jobs\": 3, \"jobs_completed\": 3, \"clink_exit_status\": 0, \"cancelled\": 0, \"pipeline\": \"pipeline/large.sql\", \"clink\": \"ghcr.io/orhaugh/clink-runtime:sha-c134524d8674@sha256:f19c890c747e8a6e097568e0003cd83c303599a4bfbb0095751045909124802f\", \"relate\": \"1.0.1\", \"lag_ms\": 300000, \"fan_in_min_senders\": 5, \"fan_in_window_ms\": 3600000, \"onward_max_gap_ms\": 1800000}], \"row_count\": 1, \"truncated\": false}",
+    "seconds": 0.0
+  },
+  {
+    "tool_call": 2,
+    "purpose": "alerts with contributions",
+    "query": "SELECT f.*, group_concat(c.transfer_id) FROM fan_in_alerts f JOIN alert_contributions c USING(indicator_id) GROUP BY f.indicator_id",
+    "ok": true,
+    "result": "{\"rows\": [{\"indicator_id\": \"fan_in:A-10859:1794924000000\", \"account\": \"A-10859\", \"window_start_ms\": 1794924000000, \"window_end_ms\": 1794927600000, \"senders\": 6, \"transfers\": 6, \"total_minor\": 204000, \"group_concat(c.transfer_id)\": \"T011431,T011465,T011494,T011536,T011572,T011610\"}, {\"indicator_id\": \"fan_in:A-20636:1795190400000\", \"account\": \"A-20636\", \"window_start_ms\": 1795190400000, \"window_end_ms\": 1795194000000, \"senders\": 6, \"transfers\": 6, \"total_minor\": 36000, \"group_concat(c.transfer_id)\": \"T033316,T033368,T033403,T033439,T033474,T033495\"}, {\"indicator_id\": \"fan_in:A-28137:1795003200000\", \"account\": \"A-28137\", \"window_start_ms\": 1795003200000, \"window_end_ms\": 1795006800000, \"senders\": 7, \"transfers\": 7, \"total_minor\": 29500, \"group_concat(c.transfer_id)\": \"T018004,T018035,T018065,T018090,T018160,T018198,T018248\"}, {\"indicator_id\": \"fan_in:A-37573:1794823200000\", \"account\": \"A-37573\", \"window_start_ms\": 1794823200000, \"window_end_ms\": 1794826800000, \"senders\": 7, \"transfers\": 7, \"total_minor\": 379500, \"group_concat(c.transfer_id)\": \"T003057,T003091,T003124,T003154,T003248,T003287,T003319\"}, {\"indicator_id\": \"fan_in:A-83577:1795057200000\", \"account\": \"A-83577\", \"window_start_ms\": 1795057200000, \"window_end_ms\": 1795060800000, \"senders\": 8, \"transfers\": 8, \"total_minor\": 174500, \"group_concat(c.transfer_id)\": \"T022417,T022437,T022451,T022478,T022495,T022519,T022542,T022561\"}, {\"indicator_id\": \"fan_in:A-85921:1794855600000\", \"account\": \"A-85921\", \"window_start_ms\": 1794855600000, \"window_end_ms\": 1794859200000, \"senders\": 6, \"transfers\": 6, \"total_minor\": 15000, \"group_concat(c.transfer_id)\": \"T005750,T005789,T005830,T005868,T005934,T005978\"}], \"row_count\": 6, \"truncated\": false}",
+    "seconds": 0.001
+  },
+  {
+    "tool_call": 3,
+    "purpose": "counts",
+    "query": "SELECT (SELECT count(*) FROM transfers), (SELECT count(*) FROM onward_links), (SELECT count(*) FROM fan_in_alerts), (SELECT count(DISTINCT device) FROM transfers), (SELECT count(*) FROM (SELECT sender a FROM transfers UNION SELECT receiver FROM transfers))",
+    "ok": true,
+    "result": "{\"rows\": [{\"(SELECT count(*) FROM transfers)\": 50000, \"(SELECT count(*) FROM onward_links)\": 691, \"(SELECT count(*) FROM fan_in_alerts)\": 6, \"(SELECT count(DISTINCT device) FROM transfers)\": 12321, \"(SELECT count(*) FROM (SELECT sender a FROM transfers UNION SELECT receiver FROM transfers))\": 12072}], \"row_count\": 1, \"truncated\": false}",
+    "seconds": 0.024
+  },
+  {
+    "request": 2,
+    "response": {
+      "id": "msg_bdrk_uhvuur3zhbyszg2cocq4tefv7c3zesreysy4lnntxtwjj7myqzhq",
+      "container": null,
+      "content": [
+        {
+          "signature": "CAQSsgQKEggTEAEYAjgBQgh0aGlua2luZxIMFTPkrO0PZIgHxB98Ggx3NI8Im0QhlPYKdR8iMNJoURbry16g3H+J2jtO8Kh6TeoCFiT9eDGPV/gHcjBv2WHhmAHDVOcLCBwiU3ejMSrNAzYap7meUPEAby7Mz0eufp67KXTWOYRNQ2CSZ4HuAaFC/Xev58g+IZOz+sRXdoiGHCC+a3QVcbriTfgvrCxU26uHph4BINWRQS+qaZ+SPVRH1JeiW1Mt5mhfzqWtjQtOlaU6lElosGRmBh4xOXuR7w2cyrtNJOBZ7nKNEH+nx2u5c/M9nn2yH+mHaI5p5/WDqQXYeAmg5ae8G4ENaa3Vi6MLfnoDiY1d0Lgi9RgZWAs6e89Sgo2fkB2GEaylsdDhKzNf0KU+e6ySq6+eDCl3kZ3sA1AmmwOK+Bn4z92nuxi6S1v+4RMAiipIftUYwLuYRIPdheZELR5KL73hTtoWNL7X12KmbBVpNBSwkn+JgGT40ePEAkZaWpvF0oT9Wywv2nsP5J/7P37pN4r3uMeIKxM5KyEg/BKZHaBap4YkjT39ZZlNyFtrQ2vCnHaEdabYk0fxBw/c404gRJMwUqcHAkNgUshXqZJTZephd2i1J9wmkOFBJB26RfdFG3lUSTolR4AKPHr66ndMQDCKVj4qrWNE2Hye3Oa4lQP+qI5073+Zn9YfwKY3/t9RqcbVTG5tQZJQYxrz5z4zURYsb/+JIf5u28HNB2LE3T6Iye5VGAE=",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_bdrk_01PM6bSqfb4Payb1HvRvmw84",
+          "input": {
+            "query": "WITH RECURSIVE path(ind, start_id, transfer_id, links, trail) AS (\n    SELECT indicator_id, transfer_id, transfer_id, 0, transfer_id FROM alert_contributions\n    UNION ALL\n    SELECT path.ind, path.start_id, o.debit_transfer_id, path.links + 1, path.trail || '>' || o.debit_transfer_id\n    FROM path JOIN onward_links o ON o.credit_transfer_id = path.transfer_id\n  )\n  SELECT ind, start_id, trail, links, t.sender, t.receiver, NOT EXISTS (SELECT 1 FROM onward_links WHERE credit_transfer_id = path.transfer_id) AS ends\n  FROM path JOIN transfers t ON t.transfer_id=path.transfer_id ORDER BY ind, start_id, links",
+            "purpose": "all paths from all alerts"
+          },
+          "name": "query",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 1805
+        },
+        "cache_creation_input_tokens": 1805,
+        "cache_read_input_tokens": 4425,
+        "input_tokens": 2,
+        "output_tokens": 383,
+        "output_tokens_details": {
+          "thinking_tokens": 12
+        },
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tool_call": 4,
+    "purpose": "all paths from all alerts",
+    "query": "WITH RECURSIVE path(ind, start_id, transfer_id, links, trail) AS (\n    SELECT indicator_id, transfer_id, transfer_id, 0, transfer_id FROM alert_contributions\n    UNION ALL\n    SELECT path.ind, path.start_id, o.debit_transfer_id, path.links + 1, path.trail || '>' || o.debit_transfer_id\n    FROM path JOIN onward_links o ON o.credit_transfer_id = path.transfer_id\n  )\n  SELECT ind, start_id, trail, links, t.sender, t.receiver, NOT EXISTS (SELECT 1 FROM onward_links WHERE credit_transfer_id = path.transfer_id) AS ends\n  FROM path JOIN transfers t ON t.transfer_id=path.transfer_id ORDER BY ind, start_id, links",
+    "ok": true,
+    "result": "{\"rows\": [{\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011431\", \"trail\": \"T011431\", \"links\": 0, \"sender\": \"A-57720\", \"receiver\": \"A-10859\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011431\", \"trail\": \"T011431>T011583\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011431\", \"trail\": \"T011431>T011583>T011600\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-75793\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011431\", \"trail\": \"T011431>T011583>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011431\", \"trail\": \"T011431>T011583>T011600>T011628\", \"links\": 3, \"sender\": \"A-75793\", \"receiver\": \"A-92332\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011465\", \"trail\": \"T011465\", \"links\": 0, \"sender\": \"A-75834\", \"receiver\": \"A-10859\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011465\", \"trail\": \"T011465>T011583\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011465\", \"trail\": \"T011465>T011583>T011600\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-75793\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011465\", \"trail\": \"T011465>T011583>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011465\", \"trail\": \"T011465>T011583>T011600>T011628\", \"links\": 3, \"sender\": \"A-75793\", \"receiver\": \"A-92332\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011494\", \"trail\": \"T011494\", \"links\": 0, \"sender\": \"A-42108\", \"receiver\": \"A-10859\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011494\", \"trail\": \"T011494>T011583\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011494\", \"trail\": \"T011494>T011583>T011600\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-75793\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011494\", \"trail\": \"T011494>T011583>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011494\", \"trail\": \"T011494>T011583>T011600>T011628\", \"links\": 3, \"sender\": \"A-75793\", \"receiver\": \"A-92332\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011536\", \"trail\": \"T011536\", \"links\": 0, \"sender\": \"A-83856\", \"receiver\": \"A-10859\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011536\", \"trail\": \"T011536>T011583\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011536\", \"trail\": \"T011536>T011670\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011536\", \"trail\": \"T011536>T011583>T011600\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-75793\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011536\", \"trail\": \"T011536>T011583>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011536\", \"trail\": \"T011536>T011670>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011536\", \"trail\": \"T011536>T011583>T011600>T011628\", \"links\": 3, \"sender\": \"A-75793\", \"receiver\": \"A-92332\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011572\", \"trail\": \"T011572\", \"links\": 0, \"sender\": \"A-78288\", \"receiver\": \"A-10859\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011572\", \"trail\": \"T011572>T011583\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011572\", \"trail\": \"T011572>T011670\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011572\", \"trail\": \"T011572>T011583>T011600\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-75793\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011572\", \"trail\": \"T011572>T011583>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011572\", \"trail\": \"T011572>T011670>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011572\", \"trail\": \"T011572>T011583>T011600>T011628\", \"links\": 3, \"sender\": \"A-75793\", \"receiver\": \"A-92332\", \"ends\": 1}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011610\", \"trail\": \"T011610\", \"links\": 0, \"sender\": \"A-67293\", \"receiver\": \"A-10859\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011610\", \"trail\": \"T011610>T011670\", \"links\": 1, \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"ends\": 0}, {\"ind\": \"fan_in:A-10859:1794924000000\", \"start_id\": \"T011610\", \"trail\": \"T011610>T011670>T011695\", \"links\": 2, \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"ends\": 1}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033316\", \"trail\": \"T033316\", \"links\": 0, \"sender\": \"A-37471\", \"receiver\": \"A-20636\", \"ends\": 1}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033368\", \"trail\": \"T033368\", \"links\": 0, \"sender\": \"A-75147\", \"receiver\": \"A-20636\", \"ends\": 0}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033368\", \"trail\": \"T033368>T033506\", \"links\": 1, \"sender\": \"A-20636\", \"receiver\": \"A-36729\", \"ends\": 1}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033403\", \"trail\": \"T033403\", \"links\": 0, \"sender\": \"A-92314\", \"receiver\": \"A-20636\", \"ends\": 0}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033403\", \"trail\": \"T033403>T033506\", \"links\": 1, \"sender\": \"A-20636\", \"receiver\": \"A-36729\", \"ends\": 1}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033439\", \"trail\": \"T033439\", \"links\": 0, \"sender\": \"A-10442\", \"receiver\": \"A-20636\", \"ends\": 0}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033439\", \"trail\": \"T033439>T033506\", \"links\": 1, \"sender\": \"A-20636\", \"receiver\": \"A-36729\", \"ends\": 1}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033474\", \"trail\": \"T033474\", \"links\": 0, \"sender\": \"A-64723\", \"receiver\": \"A-20636\", \"ends\": 0}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033474\", \"trail\": \"T033474>T033506\", \"links\": 1, \"sender\": \"A-20636\", \"receiver\": \"A-36729\", \"ends\": 1}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033495\", \"trail\": \"T033495\", \"links\": 0, \"sender\": \"A-25683\", \"receiver\": \"A-20636\", \"ends\": 0}, {\"ind\": \"fan_in:A-20636:1795190400000\", \"start_id\": \"T033495\", \"trail\": \"T033495>T033506\", \"links\": 1, \"sender\": \"A-20636\", \"receiver\": \"A-36729\", \"ends\": 1}, {\"ind\": \"fan_in:A-28137:1795003200000\", \"start_id\": \"T018004\", \"trail\": \"T018004\", \"links\": 0, \"sender\": \"A-42687\", \"receiver\": \"A-28137\", \"ends\": 1}, {\"ind\": \"fan_in:A-28137:1795003200000\", \"start_id\": \"T018035\", \"trail\": \"T018035\", \"links\": 0, \"sender\": \"A-79951\", \"receiver\": \"A-28137\", \"ends\": 1}, {\"ind\": \"fan_in:A-28137:1795003200000\", \"start_id\": \"T018065\", \"trail\": \"T018065\", \"links\": 0, \"sender\": \"A-81834\", \"receiver\": \"A-28137\", \"ends\": 1}, {\"ind\": \"fan_in:A-28137:1795003200000\", \"start_id\": \"T018090\", \"trail\": \"T018090\", \"links\": 0, \"sender\": \"A-40980\", \"receiver\": \"A-28137\", \"ends\": 1}, {\"ind\": \"fan_in:A-28137:1795003200000\", \"start_id\": \"T018160\", \"trail\": \"T018160\", \"links\": 0, \"sender\": \"A-61482\", \"receiver\": \"A-28137\", \"ends\": 1}, {\"ind\": \"fan_in:A-28137:1795003200000\", \"start_id\": \"T018198\", \"trail\": \"T018198\", \"links\": 0, \"sender\": \"A-25100\", \"receiver\": \"A-28137\", \"ends\": 1}, {\"ind\": \"fan_in:A-28137:1795003200000\", \"start_id\": \"T018248\", \"trail\": \"T018248\", \"links\": 0, \"sender\": \"A-31752\", \"receiver\": \"A-28137\", \"ends\": 1}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003057\", \"trail\": \"T003057\", \"links\": 0, \"sender\": \"A-76091\", \"receiver\": \"A-37573\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003057\", \"trail\": \"T003057>T003168\", \"links\": 1, \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003057\", \"trail\": \"T003057>T003168>T003182\", \"links\": 2, \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003057\", \"trail\": \"T003057>T003168>T003182>T003201\", \"links\": 3, \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003057\", \"trail\": \"T003057>T003168>T003182>T003201>T003222\", \"links\": 4, \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"ends\": 1}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003091\", \"trail\": \"T003091\", \"links\": 0, \"sender\": \"A-94815\", \"receiver\": \"A-37573\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003091\", \"trail\": \"T003091>T003168\", \"links\": 1, \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003091\", \"trail\": \"T003091>T003168>T003182\", \"links\": 2, \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003091\", \"trail\": \"T003091>T003168>T003182>T003201\", \"links\": 3, \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003091\", \"trail\": \"T003091>T003168>T003182>T003201>T003222\", \"links\": 4, \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"ends\": 1}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003124\", \"trail\": \"T003124\", \"links\": 0, \"sender\": \"A-52167\", \"receiver\": \"A-37573\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003124\", \"trail\": \"T003124>T003168\", \"links\": 1, \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003124\", \"trail\": \"T003124>T003168>T003182\", \"links\": 2, \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003124\", \"trail\": \"T003124>T003168>T003182>T003201\", \"links\": 3, \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003124\", \"trail\": \"T003124>T003168>T003182>T003201>T003222\", \"links\": 4, \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"ends\": 1}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003154\", \"trail\": \"T003154\", \"links\": 0, \"sender\": \"A-85326\", \"receiver\": \"A-37573\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003154\", \"trail\": \"T003154>T003168\", \"links\": 1, \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003154\", \"trail\": \"T003154>T003168>T003182\", \"links\": 2, \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003154\", \"trail\": \"T003154>T003168>T003182>T003201\", \"links\": 3, \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003154\", \"trail\": \"T003154>T003168>T003182>T003201>T003222\", \"links\": 4, \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"ends\": 1}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003248\", \"trail\": \"T003248\", \"links\": 0, \"sender\": \"A-11724\", \"receiver\": \"A-37573\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003248\", \"trail\": \"T003248>T003391\", \"links\": 1, \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003248\", \"trail\": \"T003248>T003391>T003416\", \"links\": 2, \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003248\", \"trail\": \"T003248>T003391>T003416>T003433\", \"links\": 3, \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003248\", \"trail\": \"T003248>T003391>T003416>T003433>T003454\", \"links\": 4, \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"ends\": 1}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003287\", \"trail\": \"T003287\", \"links\": 0, \"sender\": \"A-76313\", \"receiver\": \"A-37573\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003287\", \"trail\": \"T003287>T003391\", \"links\": 1, \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003287\", \"trail\": \"T003287>T003391>T003416\", \"links\": 2, \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003287\", \"trail\": \"T003287>T003391>T003416>T003433\", \"links\": 3, \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003287\", \"trail\": \"T003287>T003391>T003416>T003433>T003454\", \"links\": 4, \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"ends\": 1}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003319\", \"trail\": \"T003319\", \"links\": 0, \"sender\": \"A-34750\", \"receiver\": \"A-37573\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003319\", \"trail\": \"T003319>T003391\", \"links\": 1, \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003319\", \"trail\": \"T003319>T003391>T003416\", \"links\": 2, \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003319\", \"trail\": \"T003319>T003391>T003416>T003433\", \"links\": 3, \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"ends\": 0}, {\"ind\": \"fan_in:A-37573:1794823200000\", \"start_id\": \"T003319\", \"trail\": \"T003319>T003391>T003416>T003433>T003454\", \"links\": 4, \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022417\", \"trail\": \"T022417\", \"links\": 0, \"sender\": \"A-85076\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022417\", \"trail\": \"T022417>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022417\", \"trail\": \"T022417>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022417\", \"trail\": \"T022417>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022417\", \"trail\": \"T022417>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022417\", \"trail\": \"T022417>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022437\", \"trail\": \"T022437\", \"links\": 0, \"sender\": \"A-66977\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022437\", \"trail\": \"T022437>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022437\", \"trail\": \"T022437>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022437\", \"trail\": \"T022437>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022437\", \"trail\": \"T022437>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022437\", \"trail\": \"T022437>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022451\", \"trail\": \"T022451\", \"links\": 0, \"sender\": \"A-62838\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022451\", \"trail\": \"T022451>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022451\", \"trail\": \"T022451>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022451\", \"trail\": \"T022451>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022451\", \"trail\": \"T022451>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022451\", \"trail\": \"T022451>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022478\", \"trail\": \"T022478\", \"links\": 0, \"sender\": \"A-69964\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022478\", \"trail\": \"T022478>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022478\", \"trail\": \"T022478>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022478\", \"trail\": \"T022478>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022478\", \"trail\": \"T022478>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022478\", \"trail\": \"T022478>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022495\", \"trail\": \"T022495\", \"links\": 0, \"sender\": \"A-94279\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022495\", \"trail\": \"T022495>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022495\", \"trail\": \"T022495>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022495\", \"trail\": \"T022495>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022495\", \"trail\": \"T022495>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022495\", \"trail\": \"T022495>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022519\", \"trail\": \"T022519\", \"links\": 0, \"sender\": \"A-26066\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022519\", \"trail\": \"T022519>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022519\", \"trail\": \"T022519>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022519\", \"trail\": \"T022519>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022519\", \"trail\": \"T022519>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022519\", \"trail\": \"T022519>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022542\", \"trail\": \"T022542\", \"links\": 0, \"sender\": \"A-71095\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022542\", \"trail\": \"T022542>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022542\", \"trail\": \"T022542>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022542\", \"trail\": \"T022542>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022542\", \"trail\": \"T022542>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022542\", \"trail\": \"T022542>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022561\", \"trail\": \"T022561\", \"links\": 0, \"sender\": \"A-36849\", \"receiver\": \"A-83577\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022561\", \"trail\": \"T022561>T022572\", \"links\": 1, \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022561\", \"trail\": \"T022561>T022572>T022592\", \"links\": 2, \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022561\", \"trail\": \"T022561>T022572>T022592>T022609\", \"links\": 3, \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022561\", \"trail\": \"T022561>T022572>T022592>T022609>T022629\", \"links\": 4, \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"ends\": 0}, {\"ind\": \"fan_in:A-83577:1795057200000\", \"start_id\": \"T022561\", \"trail\": \"T022561>T022572>T022592>T022609>T022629>T022649\", \"links\": 5, \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"ends\": 1}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005750\", \"trail\": \"T005750\", \"links\": 0, \"sender\": \"A-10868\", \"receiver\": \"A-85921\", \"ends\": 0}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005750\", \"trail\": \"T005750>T005888\", \"links\": 1, \"sender\": \"A-85921\", \"receiver\": \"A-10758\", \"ends\": 1}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005789\", \"trail\": \"T005789\", \"links\": 0, \"sender\": \"A-37924\", \"receiver\": \"A-85921\", \"ends\": 0}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005789\", \"trail\": \"T005789>T005888\", \"links\": 1, \"sender\": \"A-85921\", \"receiver\": \"A-10758\", \"ends\": 1}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005830\", \"trail\": \"T005830\", \"links\": 0, \"sender\": \"A-61843\", \"receiver\": \"A-85921\", \"ends\": 0}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005830\", \"trail\": \"T005830>T005888\", \"links\": 1, \"sender\": \"A-85921\", \"receiver\": \"A-10758\", \"ends\": 1}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005868\", \"trail\": \"T005868\", \"links\": 0, \"sender\": \"A-73681\", \"receiver\": \"A-85921\", \"ends\": 0}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005868\", \"trail\": \"T005868>T005888\", \"links\": 1, \"sender\": \"A-85921\", \"receiver\": \"A-10758\", \"ends\": 1}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005934\", \"trail\": \"T005934\", \"links\": 0, \"sender\": \"A-30679\", \"receiver\": \"A-85921\", \"ends\": 1}, {\"ind\": \"fan_in:A-85921:1794855600000\", \"start_id\": \"T005978\", \"trail\": \"T005978\", \"links\": 0, \"sender\": \"A-35236\", \"receiver\": \"A-85921\", \"ends\": 1}], \"row_count\": 143, \"truncated\": false}",
+    "seconds": 0.011
+  },
+  {
+    "request": 3,
+    "response": {
+      "id": "msg_bdrk_4th2at4rv6nt2dx4dmiud4amygob2w7hfj6av3xn5mwxpc2qq7ja",
+      "container": null,
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_bdrk_017zVtPniXtyeALgUv943iHV",
+          "input": {
+            "query": "WITH r(ind, acct) AS (VALUES\n('A-10859','A-10859'),('A-10859','A-78340'),('A-10859','A-75793'),('A-10859','A-85287'),('A-10859','A-92332'),\n('A-20636','A-20636'),('A-20636','A-36729'),\n('A-28137','A-28137'),\n('A-37573','A-37573'),('A-37573','A-38045'),('A-37573','A-93288'),('A-37573','A-63022'),('A-37573','A-54215'),\n('A-83577','A-83577'),('A-83577','A-56768'),('A-83577','A-83094'),('A-83577','A-43725'),('A-83577','A-14799'),('A-83577','A-39382'),\n('A-85921','A-85921'),('A-85921','A-10758'))\nSELECT r.ind, t.device, group_concat(DISTINCT t.sender) senders, count(DISTINCT t.sender) n,\n (SELECT group_concat(DISTINCT t2.sender) FROM transfers t2 WHERE t2.device=t.device) all_senders\nFROM r JOIN transfers t ON t.sender=r.acct GROUP BY r.ind, t.device ORDER BY r.ind, n DESC",
+            "purpose": "devices used by route accounts per indicator"
+          },
+          "name": "query",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 12269
+        },
+        "cache_creation_input_tokens": 12269,
+        "cache_read_input_tokens": 6230,
+        "input_tokens": 2,
+        "output_tokens": 982,
+        "output_tokens_details": {
+          "thinking_tokens": 476
+        },
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tool_call": 5,
+    "purpose": "devices used by route accounts per indicator",
+    "query": "WITH r(ind, acct) AS (VALUES\n('A-10859','A-10859'),('A-10859','A-78340'),('A-10859','A-75793'),('A-10859','A-85287'),('A-10859','A-92332'),\n('A-20636','A-20636'),('A-20636','A-36729'),\n('A-28137','A-28137'),\n('A-37573','A-37573'),('A-37573','A-38045'),('A-37573','A-93288'),('A-37573','A-63022'),('A-37573','A-54215'),\n('A-83577','A-83577'),('A-83577','A-56768'),('A-83577','A-83094'),('A-83577','A-43725'),('A-83577','A-14799'),('A-83577','A-39382'),\n('A-85921','A-85921'),('A-85921','A-10758'))\nSELECT r.ind, t.device, group_concat(DISTINCT t.sender) senders, count(DISTINCT t.sender) n,\n (SELECT group_concat(DISTINCT t2.sender) FROM transfers t2 WHERE t2.device=t.device) all_senders\nFROM r JOIN transfers t ON t.sender=r.acct GROUP BY r.ind, t.device ORDER BY r.ind, n DESC",
+    "ok": true,
+    "result": "{\"rows\": [{\"ind\": \"A-10859\", \"device\": \"D-79802\", \"senders\": \"A-10859,A-78340\", \"n\": 2, \"all_senders\": \"A-10859,A-78340\"}, {\"ind\": \"A-10859\", \"device\": \"D-10265\", \"senders\": \"A-75793\", \"n\": 1, \"all_senders\": \"A-75793\"}, {\"ind\": \"A-20636\", \"device\": \"D-52544\", \"senders\": \"A-20636\", \"n\": 1, \"all_senders\": \"A-20636\"}, {\"ind\": \"A-20636\", \"device\": \"D-30793\", \"senders\": \"A-36729\", \"n\": 1, \"all_senders\": \"A-36729,A-69026\"}, {\"ind\": \"A-28137\", \"device\": \"D-94558\", \"senders\": \"A-28137\", \"n\": 1, \"all_senders\": \"A-28137\"}, {\"ind\": \"A-37573\", \"device\": \"D-45880\", \"senders\": \"A-37573,A-38045,A-93288,A-63022\", \"n\": 4, \"all_senders\": \"A-37573,A-38045,A-93288,A-63022\"}, {\"ind\": \"A-83577\", \"device\": \"D-40018\", \"senders\": \"A-83094,A-14799\", \"n\": 2, \"all_senders\": \"A-83094,A-14799,A-34114\"}, {\"ind\": \"A-83577\", \"device\": \"D-96125\", \"senders\": \"A-56768\", \"n\": 1, \"all_senders\": \"A-56768\"}, {\"ind\": \"A-83577\", \"device\": \"D-73452\", \"senders\": \"A-83577\", \"n\": 1, \"all_senders\": \"A-83577\"}, {\"ind\": \"A-83577\", \"device\": \"D-13859\", \"senders\": \"A-43725\", \"n\": 1, \"all_senders\": \"A-43725\"}, {\"ind\": \"A-85921\", \"device\": \"D-97117\", \"senders\": \"A-85921\", \"n\": 1, \"all_senders\": \"A-85921\"}], \"row_count\": 11, \"truncated\": false}",
+    "seconds": 0.002
+  },
+  {
+    "request": 4,
+    "response": {
+      "id": "msg_bdrk_7q7vlmieryz6wn4uromm2n4cjvmyqmoxgkyupqy22e6mq6b4taaq",
+      "container": null,
+      "content": [
+        {
+          "signature": "CAQSgAoKEggTEAEYAjgBQgh0aGlua2luZxIM8H4fIwqcfiH/WK5ZGgyOYfvPk/hnF6YcKWgiMHtCPaCrSBU3c7UyXwICRsJ6lBA+BV0+ts3i5zJi4svjWjDz7XfP3/kEyXKQlec9/SqbCR9O1teVG5K0kGfPckToeGd5l4i1Et4evOKnkLvAVvAxrIYyDzEgZbwiKQ+vOhVbMwPg9JVucuZ2R+9ni0IUk+wJsi94kxfxu1AJnul8ENH8bM1ZJMcrD+0PY9tZ/b4U4hGOlWW7QNcwWjn3AckpT3Rs108XriHRZBmKTMB+1S7HP2FIcvZwZQGn3rO/5FPCSA5SKSC6YyfcjUUXLX2b+EuGWVldl8MkaO8Hz5EFrQsWT8LI/06ztwCwLa3GljS1ZqmYPfo5mJE0mWZyHgTQljCbxfWCncfKe9fHIhjAUqvsvLANB+nW1gGAwWZZzKdzrOl6TQ3kF6j9QbeSEa9gECD86zhpJ+rbZ5LowUBPzEYLGqIAIGKoLsR7AouWL0hsKmdfH9PpkpjEAOKruxr+nvGgFmmADhHOg558hPL+pOMDS7qIM+aiffNB/RRjILS2XC988Q24ikUll0PHkcMJg0NXgZEnG0lMY7A1/5CB3McCkf1Fz5ZmFIEyR1y7fQMhQn6K33VD1e7Ls7BbyQ43NKZ/EvGrl61JzlsN2+PuB16D5KS1cDCwZ0g7nJa7uFjp/+5TBgmvcTcxOSa4FXAk5uJxUHEI5eUSwuoeyG3Vy+gYYujBmwN7ItDpy3NUxqIykUKk5WI4oHNKd4eFIZLa563LgZSxpvpCZqd+NFnF/qdFnAfhJtRrN001QUUM78/9YdnPsE4nbMuWR7Nqfi2pRDRBJtfUJc0lvH4bzNePUqb26Lw4tSpKCRA8R5NVMVNxnj51+vMGJ21uolHid8QsGbmloKz01DxpfWzc2v/QMpAOOzTvPUXhn0K0esEhL+OKnG9mkzCyIZdM+/fI49GT5hN/AhyB90MKP/NZjnX6srzUZXFtMzGJThKckF5WsPvoNCN4rcjMxsaREGOOiZVXgaBzGOqPfSm6CqwaaS2jLP+o72uQkJDpmH08+m3eXbdRamoWBbyCsr2zR+KVeyikxTjl+GDQ/0Ou3qPj9uSWCAWeQdORZI66+RQCtTmFlLTkKyZ/etwZScxdtKtoDvwCMeh3d9xkevLXH4oX+ZY77AaiJiHke8iOFN6Od2frUvr/xG3ViewfKHx+V3N7hYa0Hbg9gUOTqLE+ecRzw5CgOj+3Y+4dbtn9beKl/nVTOlgeAfbftl/HR1BFufwhEFXOB0GCGs08AOShV1WTqZCgIlsWitno5PAvQWiEnaPD2Xm5QDMN8xWgukCKXQY7+UgEdg8mYHvPlujHIAzJUehX9GqW8zHLN3MlbZwUjMX1v2z9ILjT042JYgbGaj8Kqu5T0P97dlwesW3LA8WW6LZNEcHW8O1GU0CjldhANaoAnNG2v2yZ/YNZcrJkGVJAB1CGu1tqIH2h9ej5R0A/4VvZHlK/rf37wIBPpyLDPT/7ueOoqZ5FF/WybIoUZJ2OT4jMDDNliUK7jARvULUYQUqU9egRK46oRHJN6GDHZMJ4gp6voNaK6F++PkoLKoGdjFSCf5cUDExUKR7/xJR3lixZBJSaX+9C4GSlc4tGOGoDgLLLeuTD9AGK6jQHT4Ua30LGE2R2ciUQV2oAyBFfaxgB",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_bdrk_014LuFoG77VNMDQrPFiph5Vr",
+          "input": {
+            "query": "SELECT * FROM transfers WHERE transfer_id IN ('T011583','T011670','T011600','T011695','T011628','T033506','T003168','T003182','T003201','T003222','T003391','T003416','T003433','T003454','T022572','T022592','T022609','T022629','T022649','T005888') ORDER BY transfer_id",
+            "purpose": "onward transfer details"
+          },
+          "name": "query",
+          "type": "tool_use"
+        },
+        {
+          "id": "toolu_bdrk_0119cMYnF4AHoRW1MKtJ9sfo",
+          "input": {
+            "query": "SELECT t.*, c.indicator_id FROM alert_contributions c JOIN transfers t USING(transfer_id) ORDER BY c.indicator_id, t.event_time_ms",
+            "purpose": "contributing transfer details"
+          },
+          "name": "query",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 1618
+        },
+        "cache_creation_input_tokens": 1618,
+        "cache_read_input_tokens": 18499,
+        "input_tokens": 2,
+        "output_tokens": 622,
+        "output_tokens_details": {
+          "thinking_tokens": 300
+        },
+        "service_tier": "standard"
+      }
+    }
+  },
+  {
+    "tool_call": 6,
+    "purpose": "onward transfer details",
+    "query": "SELECT * FROM transfers WHERE transfer_id IN ('T011583','T011670','T011600','T011695','T011628','T033506','T003168','T003182','T003201','T003222','T003391','T003416','T003433','T003454','T022572','T022592','T022609','T022629','T022649','T005888') ORDER BY transfer_id",
+    "ok": true,
+    "result": "{\"rows\": [{\"transfer_id\": \"T003168\", \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"amount_minor\": 196000, \"event_time_ms\": 1794824760000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T003182\", \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"amount_minor\": 191000, \"event_time_ms\": 1794824940000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T003201\", \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"amount_minor\": 187500, \"event_time_ms\": 1794825180000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T003222\", \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"amount_minor\": 184000, \"event_time_ms\": 1794825480000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T003391\", \"sender\": \"A-37573\", \"receiver\": \"A-38045\", \"amount_minor\": 176000, \"event_time_ms\": 1794827520000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T003416\", \"sender\": \"A-38045\", \"receiver\": \"A-93288\", \"amount_minor\": 172500, \"event_time_ms\": 1794827700000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T003433\", \"sender\": \"A-93288\", \"receiver\": \"A-63022\", \"amount_minor\": 169000, \"event_time_ms\": 1794827940000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T003454\", \"sender\": \"A-63022\", \"receiver\": \"A-54215\", \"amount_minor\": 166000, \"event_time_ms\": 1794828240000, \"device\": \"D-45880\"}, {\"transfer_id\": \"T005888\", \"sender\": \"A-85921\", \"receiver\": \"A-10758\", \"amount_minor\": 9500, \"event_time_ms\": 1794857400000, \"device\": \"D-97117\"}, {\"transfer_id\": \"T011583\", \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"amount_minor\": 150000, \"event_time_ms\": 1794925980000, \"device\": \"D-79802\"}, {\"transfer_id\": \"T011600\", \"sender\": \"A-78340\", \"receiver\": \"A-75793\", \"amount_minor\": 120000, \"event_time_ms\": 1794926160000, \"device\": \"D-79802\"}, {\"transfer_id\": \"T011628\", \"sender\": \"A-75793\", \"receiver\": \"A-92332\", \"amount_minor\": 117500, \"event_time_ms\": 1794926460000, \"device\": \"D-10265\"}, {\"transfer_id\": \"T011670\", \"sender\": \"A-10859\", \"receiver\": \"A-78340\", \"amount_minor\": 95000, \"event_time_ms\": 1794927000000, \"device\": \"D-79802\"}, {\"transfer_id\": \"T011695\", \"sender\": \"A-78340\", \"receiver\": \"A-85287\", \"amount_minor\": 118000, \"event_time_ms\": 1794927300000, \"device\": \"D-79802\"}, {\"transfer_id\": \"T022572\", \"sender\": \"A-83577\", \"receiver\": \"A-56768\", \"amount_minor\": 172000, \"event_time_ms\": 1795059000000, \"device\": \"D-73452\"}, {\"transfer_id\": \"T022592\", \"sender\": \"A-56768\", \"receiver\": \"A-83094\", \"amount_minor\": 169500, \"event_time_ms\": 1795059180000, \"device\": \"D-96125\"}, {\"transfer_id\": \"T022609\", \"sender\": \"A-83094\", \"receiver\": \"A-43725\", \"amount_minor\": 167000, \"event_time_ms\": 1795059360000, \"device\": \"D-40018\"}, {\"transfer_id\": \"T022629\", \"sender\": \"A-43725\", \"receiver\": \"A-14799\", \"amount_minor\": 164000, \"event_time_ms\": 1795059600000, \"device\": \"D-13859\"}, {\"transfer_id\": \"T022649\", \"sender\": \"A-14799\", \"receiver\": \"A-39382\", \"amount_minor\": 161500, \"event_time_ms\": 1795059900000, \"device\": \"D-40018\"}, {\"transfer_id\": \"T033506\", \"sender\": \"A-20636\", \"receiver\": \"A-36729\", \"amount_minor\": 30000, \"event_time_ms\": 1795192800000, \"device\": \"D-52544\"}], \"row_count\": 20, \"truncated\": false}",
+    "seconds": 0.001
+  },
+  {
+    "tool_call": 7,
+    "purpose": "contributing transfer details",
+    "query": "SELECT t.*, c.indicator_id FROM alert_contributions c JOIN transfers t USING(transfer_id) ORDER BY c.indicator_id, t.event_time_ms",
+    "ok": true,
+    "result": "{\"rows\": [{\"transfer_id\": \"T011431\", \"sender\": \"A-57720\", \"receiver\": \"A-10859\", \"amount_minor\": 28000, \"event_time_ms\": 1794924300000, \"device\": \"D-47930\", \"indicator_id\": \"fan_in:A-10859:1794924000000\"}, {\"transfer_id\": \"T011465\", \"sender\": \"A-75834\", \"receiver\": \"A-10859\", \"amount_minor\": 35500, \"event_time_ms\": 1794924660000, \"device\": \"D-89468\", \"indicator_id\": \"fan_in:A-10859:1794924000000\"}, {\"transfer_id\": \"T011494\", \"sender\": \"A-42108\", \"receiver\": \"A-10859\", \"amount_minor\": 31000, \"event_time_ms\": 1794925080000, \"device\": \"D-61651\", \"indicator_id\": \"fan_in:A-10859:1794924000000\"}, {\"transfer_id\": \"T011536\", \"sender\": \"A-83856\", \"receiver\": \"A-10859\", \"amount_minor\": 44000, \"event_time_ms\": 1794925440000, \"device\": \"D-84222\", \"indicator_id\": \"fan_in:A-10859:1794924000000\"}, {\"transfer_id\": \"T011572\", \"sender\": \"A-78288\", \"receiver\": \"A-10859\", \"amount_minor\": 26500, \"event_time_ms\": 1794925860000, \"device\": \"D-27061\", \"indicator_id\": \"fan_in:A-10859:1794924000000\"}, {\"transfer_id\": \"T011610\", \"sender\": \"A-67293\", \"receiver\": \"A-10859\", \"amount_minor\": 39000, \"event_time_ms\": 1794926220000, \"device\": \"D-35545\", \"indicator_id\": \"fan_in:A-10859:1794924000000\"}, {\"transfer_id\": \"T033316\", \"sender\": \"A-37471\", \"receiver\": \"A-20636\", \"amount_minor\": 6000, \"event_time_ms\": 1795190580000, \"device\": \"D-49226\", \"indicator_id\": \"fan_in:A-20636:1795190400000\"}, {\"transfer_id\": \"T033368\", \"sender\": \"A-75147\", \"receiver\": \"A-20636\", \"amount_minor\": 5500, \"event_time_ms\": 1795191120000, \"device\": \"D-67770\", \"indicator_id\": \"fan_in:A-20636:1795190400000\"}, {\"transfer_id\": \"T033403\", \"sender\": \"A-92314\", \"receiver\": \"A-20636\", \"amount_minor\": 7000, \"event_time_ms\": 1795191540000, \"device\": \"D-43496\", \"indicator_id\": \"fan_in:A-20636:1795190400000\"}, {\"transfer_id\": \"T033439\", \"sender\": \"A-10442\", \"receiver\": \"A-20636\", \"amount_minor\": 6500, \"event_time_ms\": 1795191960000, \"device\": \"D-32964\", \"indicator_id\": \"fan_in:A-20636:1795190400000\"}, {\"transfer_id\": \"T033474\", \"sender\": \"A-64723\", \"receiver\": \"A-20636\", \"amount_minor\": 5000, \"event_time_ms\": 1795192380000, \"device\": \"D-68506\", \"indicator_id\": \"fan_in:A-20636:1795190400000\"}, {\"transfer_id\": \"T033495\", \"sender\": \"A-25683\", \"receiver\": \"A-20636\", \"amount_minor\": 6000, \"event_time_ms\": 1795192680000, \"device\": \"D-65665\", \"indicator_id\": \"fan_in:A-20636:1795190400000\"}, {\"transfer_id\": \"T018004\", \"sender\": \"A-42687\", \"receiver\": \"A-28137\", \"amount_minor\": 4000, \"event_time_ms\": 1795003380000, \"device\": \"D-94992\", \"indicator_id\": \"fan_in:A-28137:1795003200000\"}, {\"transfer_id\": \"T018035\", \"sender\": \"A-79951\", \"receiver\": \"A-28137\", \"amount_minor\": 3500, \"event_time_ms\": 1795003740000, \"device\": \"D-82331\", \"indicator_id\": \"fan_in:A-28137:1795003200000\"}, {\"transfer_id\": \"T018065\", \"sender\": \"A-81834\", \"receiver\": \"A-28137\", \"amount_minor\": 5000, \"event_time_ms\": 1795004160000, \"device\": \"D-52565\", \"indicator_id\": \"fan_in:A-28137:1795003200000\"}, {\"transfer_id\": \"T018090\", \"sender\": \"A-40980\", \"receiver\": \"A-28137\", \"amount_minor\": 4500, \"event_time_ms\": 1795004520000, \"device\": \"D-10206\", \"indicator_id\": \"fan_in:A-28137:1795003200000\"}, {\"transfer_id\": \"T018160\", \"sender\": \"A-61482\", \"receiver\": \"A-28137\", \"amount_minor\": 3000, \"event_time_ms\": 1795005300000, \"device\": \"D-66869\", \"indicator_id\": \"fan_in:A-28137:1795003200000\"}, {\"transfer_id\": \"T018198\", \"sender\": \"A-25100\", \"receiver\": \"A-28137\", \"amount_minor\": 4000, \"event_time_ms\": 1795005840000, \"device\": \"D-54814\", \"indicator_id\": \"fan_in:A-28137:1795003200000\"}, {\"transfer_id\": \"T018248\", \"sender\": \"A-31752\", \"receiver\": \"A-28137\", \"amount_minor\": 5500, \"event_time_ms\": 1795006260000, \"device\": \"D-83530\", \"indicator_id\": \"fan_in:A-28137:1795003200000\"}, {\"transfer_id\": \"T003057\", \"sender\": \"A-76091\", \"receiver\": \"A-37573\", \"amount_minor\": 61000, \"event_time_ms\": 1794823320000, \"device\": \"D-16311\", \"indicator_id\": \"fan_in:A-37573:1794823200000\"}, {\"transfer_id\": \"T003091\", \"sender\": \"A-94815\", \"receiver\": \"A-37573\", \"amount_minor\": 38500, \"event_time_ms\": 1794823740000, \"device\": \"D-80294\", \"indicator_id\": \"fan_in:A-37573:1794823200000\"}, {\"transfer_id\": \"T003124\", \"sender\": \"A-52167\", \"receiver\": \"A-37573\", \"amount_minor\": 52000, \"event_time_ms\": 1794824220000, \"device\": \"D-25431\", \"indicator_id\": \"fan_in:A-37573:1794823200000\"}, {\"transfer_id\": \"T003154\", \"sender\": \"A-85326\", \"receiver\": \"A-37573\", \"amount_minor\": 47500, \"event_time_ms\": 1794824580000, \"device\": \"D-25866\", \"indicator_id\": \"fan_in:A-37573:1794823200000\"}, {\"transfer_id\": \"T003248\", \"sender\": \"A-11724\", \"receiver\": \"A-37573\", \"amount_minor\": 66000, \"event_time_ms\": 1794825840000, \"device\": \"D-17121\", \"indicator_id\": \"fan_in:A-37573:1794823200000\"}, {\"transfer_id\": \"T003287\", \"sender\": \"A-76313\", \"receiver\": \"A-37573\", \"amount_minor\": 41000, \"event_time_ms\": 1794826320000, \"device\": \"D-89446\", \"indicator_id\": \"fan_in:A-37573:1794823200000\"}, {\"transfer_id\": \"T003319\", \"sender\": \"A-34750\", \"receiver\": \"A-37573\", \"amount_minor\": 73500, \"event_time_ms\": 1794826740000, \"device\": \"D-50577\", \"indicator_id\": \"fan_in:A-37573:1794823200000\"}, {\"transfer_id\": \"T022417\", \"sender\": \"A-85076\", \"receiver\": \"A-83577\", \"amount_minor\": 19000, \"event_time_ms\": 1795057260000, \"device\": \"D-78356\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T022437\", \"sender\": \"A-66977\", \"receiver\": \"A-83577\", \"amount_minor\": 23500, \"event_time_ms\": 1795057500000, \"device\": \"D-73705\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T022451\", \"sender\": \"A-62838\", \"receiver\": \"A-83577\", \"amount_minor\": 21000, \"event_time_ms\": 1795057680000, \"device\": \"D-71240\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T022478\", \"sender\": \"A-69964\", \"receiver\": \"A-83577\", \"amount_minor\": 26000, \"event_time_ms\": 1795057920000, \"device\": \"D-52983\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T022495\", \"sender\": \"A-94279\", \"receiver\": \"A-83577\", \"amount_minor\": 18500, \"event_time_ms\": 1795058160000, \"device\": \"D-26461\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T022519\", \"sender\": \"A-26066\", \"receiver\": \"A-83577\", \"amount_minor\": 24000, \"event_time_ms\": 1795058400000, \"device\": \"D-89939\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T022542\", \"sender\": \"A-71095\", \"receiver\": \"A-83577\", \"amount_minor\": 22500, \"event_time_ms\": 1795058640000, \"device\": \"D-91706\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T022561\", \"sender\": \"A-36849\", \"receiver\": \"A-83577\", \"amount_minor\": 20000, \"event_time_ms\": 1795058880000, \"device\": \"D-76268\", \"indicator_id\": \"fan_in:A-83577:1795057200000\"}, {\"transfer_id\": \"T005750\", \"sender\": \"A-10868\", \"receiver\": \"A-85921\", \"amount_minor\": 2500, \"event_time_ms\": 1794855900000, \"device\": \"D-61312\", \"indicator_id\": \"fan_in:A-85921:1794855600000\"}, {\"transfer_id\": \"T005789\", \"sender\": \"A-37924\", \"receiver\": \"A-85921\", \"amount_minor\": 2500, \"event_time_ms\": 1794856320000, \"device\": \"D-63550\", \"indicator_id\": \"fan_in:A-85921:1794855600000\"}, {\"transfer_id\": \"T005830\", \"sender\": \"A-61843\", \"receiver\": \"A-85921\", \"amount_minor\": 2500, \"event_time_ms\": 1794856800000, \"device\": \"D-84802\", \"indicator_id\": \"fan_in:A-85921:1794855600000\"}, {\"transfer_id\": \"T005868\", \"sender\": \"A-73681\", \"receiver\": \"A-85921\", \"amount_minor\": 2500, \"event_time_ms\": 1794857220000, \"device\": \"D-31990\", \"indicator_id\": \"fan_in:A-85921:1794855600000\"}, {\"transfer_id\": \"T005934\", \"sender\": \"A-30679\", \"receiver\": \"A-85921\", \"amount_minor\": 2500, \"event_time_ms\": 1794858060000, \"device\": \"D-11053\", \"indicator_id\": \"fan_in:A-85921:1794855600000\"}, {\"transfer_id\": \"T005978\", \"sender\": \"A-35236\", \"receiver\": \"A-85921\", \"amount_minor\": 2500, \"event_time_ms\": 1794858600000, \"device\": \"D-25672\", \"indicator_id\": \"fan_in:A-85921:1794855600000\"}], \"row_count\": 40, \"truncated\": false}",
+    "seconds": 0.001
+  },
+  {
+    "request": 5,
+    "response": {
+      "id": "msg_bdrk_76isgcaamrtyqyb4dg5kod33e2smks2uxar65gvpgo52j3d7wtvq",
+      "container": null,
+      "content": [
+        {
+          "signature": "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",
+          "thinking": "",
+          "type": "thinking"
+        },
+        {
+          "id": "toolu_bdrk_01GUe8ya6nEyAVit1uCAmNf9",
+          "input": {
+            "findings": [
+              {
+                "id": "F0",
+                "statement": "Scope: one bounded replay (run:5ce89f521e5e, 50,000 dataset events, 3 of 3 jobs completed, clink exit status 0, not cancelled). Parameters: fan-in needs at least 5 distinct senders within a 3,600,000 ms event-time window, and an onward link needs a debit within 1,800,000 ms of a credit. The dataset contains 50,000 transfers, 12,072 accounts, 12,321 devices, 691 onward links and 6 fan-in alerts. Everything below holds only for this dataset as processed by this run.",
+                "claim_ids": [
+                  "C1",
+                  "C2",
+                  "C3",
+                  "C4",
+                  "C5"
+                ]
+              },
+              {
+                "id": "F1",
+                "statement": "fan_in:A-10859:1794924000000: account A-10859, window 1794924000000–1794927600000, 6 senders, 6 transfers, total 204000. Contributing transfers: T011431, T011465, T011494, T011536, T011572, T011610.",
+                "claim_ids": [
+                  "I1",
+                  "E11",
+                  "E12"
+                ]
+              },
+              {
+                "id": "F2",
+                "statement": "fan_in:A-20636:1795190400000: account A-20636, window 1795190400000–1795194000000, 6 senders, 6 transfers, total 36000. Contributing transfers: T033316, T033368, T033403, T033439, T033474, T033495.",
+                "claim_ids": [
+                  "I2",
+                  "E21",
+                  "E22"
+                ]
+              },
+              {
+                "id": "F3",
+                "statement": "fan_in:A-28137:1795003200000: account A-28137, window 1795003200000–1795006800000, 7 senders, 7 transfers, total 29500. Contributing transfers: T018004, T018035, T018065, T018090, T018160, T018198, T018248.",
+                "claim_ids": [
+                  "I3",
+                  "E31"
+                ]
+              },
+              {
+                "id": "F4",
+                "statement": "fan_in:A-37573:1794823200000: account A-37573, window 1794823200000–1794826800000, 7 senders, 7 transfers, total 379500. Contributing transfers: T003057, T003091, T003124, T003154, T003248, T003287, T003319.",
+                "claim_ids": [
+                  "I4",
+                  "E41",
+                  "E42"
+                ]
+              },
+              {
+                "id": "F5",
+                "statement": "fan_in:A-83577:1795057200000: account A-83577, window 1795057200000–1795060800000, 8 senders, 8 transfers, total 174500. Contributing transfers: T022417, T022437, T022451, T022478, T022495, T022519, T022542, T022561.",
+                "claim_ids": [
+                  "I5",
+                  "E51"
+                ]
+              },
+              {
+                "id": "F6",
+                "statement": "fan_in:A-85921:1794855600000: account A-85921, window 1794855600000–1794859200000, 6 senders, 6 transfers, total 15000. Contributing transfers: T005750, T005789, T005830, T005868, T005934, T005978. Each of the six contributing transfers is for 2500.",
+                "claim_ids": [
+                  "I6",
+                  "E61",
+                  "E62",
+                  "E63"
+                ]
+              },
+              {
+                "id": "F7",
+                "statement": "A-10859 alert, candidate onward-transfer paths: the longest has 3 onward links. Path accounts are A-10859, A-78340, A-75793, A-85287 and A-92332. The paths branch at A-78340 and end at two accounts, A-92332 (via T011628) and A-85287 (via T011695). Neither has a further qualifying transfer in this dataset, and neither has a fan-in alert. Every contributing transfer starts at least one path, through T011583 and/or T011670 (A-10859 to A-78340).",
+                "claim_ids": [
+                  "R1",
+                  "P11",
+                  "P12",
+                  "P13",
+                  "E13",
+                  "E14",
+                  "E15",
+                  "E16",
+                  "E17",
+                  "N11",
+                  "N12",
+                  "X11",
+                  "X12"
+                ]
+              },
+              {
+                "id": "F8",
+                "statement": "A-20636 alert: the longest path has 1 onward link. Path accounts are A-20636 and A-36729. Five contributing transfers link to T033506 (A-20636 to A-36729), and all paths end at A-36729. Contributing transfer T033316 has no onward link, and T033506 has no further one.",
+                "claim_ids": [
+                  "R2",
+                  "P21",
+                  "E23",
+                  "N21",
+                  "N22",
+                  "X21"
+                ]
+              },
+              {
+                "id": "F9",
+                "statement": "A-28137 alert: none of its 7 contributing transfers has an onward link in this dataset. So it has no candidate onward-transfer paths (max depth 0), no end accounts, and A-28137 is its only path account.",
+                "claim_ids": [
+                  "R3",
+                  "N31",
+                  "N32",
+                  "N33",
+                  "N34",
+                  "N35",
+                  "N36",
+                  "N37"
+                ]
+              },
+              {
+                "id": "F10",
+                "statement": "A-37573 alert: the longest path has 4 onward links. Path accounts are A-37573, A-38045, A-93288, A-63022 and A-54215. There are two parallel candidate sequences over the same accounts: T003168>T003182>T003201>T003222 (linked from T003057, T003091, T003124, T003154) and T003391>T003416>T003433>T003454 (linked from T003248, T003287, T003319). Both end at A-54215, which has no further qualifying transfer in this dataset and no fan-in alert.",
+                "claim_ids": [
+                  "R4",
+                  "P41",
+                  "P42",
+                  "E43",
+                  "E44",
+                  "E45",
+                  "E46",
+                  "E47",
+                  "E48",
+                  "E49",
+                  "E40",
+                  "N41",
+                  "N42",
+                  "X41"
+                ]
+              },
+              {
+                "id": "F11",
+                "statement": "A-83577 alert: the longest path has 5 onward links, the most of any alert. Path accounts are A-83577, A-56768, A-83094, A-43725, A-14799 and A-39382. All 8 contributing transfers link to the single sequence T022572>T022592>T022609>T022629>T022649, which ends at A-39382. A-39382 has no further qualifying transfer in this dataset and no fan-in alert.",
+                "claim_ids": [
+                  "R5",
+                  "P51",
+                  "E52",
+                  "E53",
+                  "E54",
+                  "E55",
+                  "E56",
+                  "N51",
+                  "X51"
+                ]
+              },
+              {
+                "id": "F12",
+                "statement": "A-85921 alert: the longest path has 1 onward link. Path accounts are A-85921 and A-10758. Four contributing transfers link to T005888 (A-85921 to A-10758, 9500), and the paths end at A-10758. Contributing transfers T005934 and T005978 have no onward link.",
+                "claim_ids": [
+                  "R6",
+                  "P61",
+                  "E64",
+                  "N61",
+                  "N62",
+                  "N63",
+                  "X61"
+                ]
+              },
+              {
+                "id": "F13",
+                "statement": "Shared devices on paths. A-10859: device D-79802 was used to send by A-10859 and A-78340, which are the alerted account and its first onward account. A-37573: device D-45880 was used to send by A-37573, A-38045, A-93288 and A-63022, which are every path account that sent anything; all 8 onward transfers on its paths came from D-45880. A-83577: device D-40018 was used to send by A-83094 and A-14799, which are not adjacent on the path; account A-34114, which is not on the path, also sent from D-40018. The A-20636, A-28137 and A-85921 alerts have no device used by two or more of their path accounts. A-36729 (on the A-20636 path) shares device D-30793 with A-69026, which is not on that path.",
+                "claim_ids": [
+                  "S1",
+                  "S2",
+                  "S3",
+                  "S4",
+                  "S5",
+                  "B1",
+                  "B2",
+                  "B3",
+                  "E13",
+                  "E14",
+                  "E15",
+                  "E43",
+                  "E44",
+                  "E45",
+                  "E46",
+                  "E54",
+                  "E56"
+                ]
+              },
+              {
+                "id": "F14",
+                "statement": "What tells the alerts apart. As indicators they are alike: 6–8 distinct senders within one hour. The recorded relationships beyond the indicator differ. (a) Onward links: A-28137 has none. A-20636 and A-85921 have single-step paths to one account each, and some of their contributions have no onward link. A-10859 (3 links, branching to 2 end accounts), A-37573 (4 links) and A-83577 (5 links) have multi-step paths that every contribution feeds into. (b) Shared devices: only A-10859, A-37573 and A-83577 have a device shared by accounts on their paths. In the A-37573 case the alerted account and every intermediate account sent from one device, D-45880. (c) Amounts: in the recorded transfers, each onward transfer on the multi-step paths is slightly smaller than the one before it (for example 196000, 191000, 187500, 184000 on A-37573's first sequence, and 172000 down to 161500 on A-83577's). For interpretation: A-28137, and to a lesser degree A-20636 and A-85921, show nothing beyond the fan-in itself. A-37573, A-83577 and A-10859 combine fan-in with multi-step timing links and shared devices, which makes them the stronger candidates for review. These remain recorded relationships, not proof of fraud or common control.",
+                "claim_ids": [
+                  "R1",
+                  "R2",
+                  "R3",
+                  "R4",
+                  "R5",
+                  "R6",
+                  "S1",
+                  "S2",
+                  "S3",
+                  "B1",
+                  "B2",
+                  "B3",
+                  "E43",
+                  "E44",
+                  "E45",
+                  "E46",
+                  "E52",
+                  "E56"
+                ]
+              },
+              {
+                "id": "F15",
+                "statement": "Traceable provenance: each finding traces back to the transfer ids listed in its claims. Those ids come from the alert_contributions and onward_links tables of run run:5ce89f521e5e.",
+                "claim_ids": [
+                  "C1",
+                  "I1",
+                  "I2",
+                  "I3",
+                  "I4",
+                  "I5",
+                  "I6"
+                ]
+              }
+            ],
+            "hypotheses": [
+              {
+                "id": "H1",
+                "statement": "A-37573's path accounts (A-37573, A-38045, A-93288, A-63022) may be operated by a single party: they all sent from D-45880, in quick succession, with slightly decreasing amounts. This would fit a layering pattern, but the data shows only device use and timing, not who controls the accounts or whether the same funds moved.",
+                "references": [
+                  "S2",
+                  "R4",
+                  "P41",
+                  "P42"
+                ]
+              },
+              {
+                "id": "H2",
+                "statement": "A-83577's sequence may be a relay pattern. D-40018 is shared by non-adjacent accounts A-83094 and A-14799, and also by off-path A-34114, which raises the possibility of a wider linked set. This is not established.",
+                "references": [
+                  "S3",
+                  "R5",
+                  "P51"
+                ]
+              },
+              {
+                "id": "H3",
+                "statement": "A-10859 and A-78340 may be controlled together, since both sent from D-79802. Not established.",
+                "references": [
+                  "S1",
+                  "R1"
+                ]
+              },
+              {
+                "id": "H4",
+                "statement": "A-28137's fan-in (small amounts, no onward links) and A-85921's (six identical 2500 transfers) could be ordinary collection activity, such as shared bills or a small merchant. The data cannot tell this apart from other explanations.",
+                "references": [
+                  "R3",
+                  "I3",
+                  "I6"
+                ]
+              }
+            ],
+            "unresolved": [
+              {
+                "id": "U1",
+                "question": "What happened at the end accounts (A-92332, A-85287, A-36729, A-54215, A-39382, A-10758) after this dataset? The paths end only because there is no further qualifying transfer in this bounded replay.",
+                "references": [
+                  "R1",
+                  "R2",
+                  "R4",
+                  "R5",
+                  "R6"
+                ]
+              },
+              {
+                "id": "U2",
+                "question": "Who controls or uses devices D-45880, D-79802 and D-40018? And what, if anything, connects A-34114 (D-40018) and A-69026 (D-30793) to the alerted paths?",
+                "references": [
+                  "S1",
+                  "S2",
+                  "S3",
+                  "S5"
+                ]
+              },
+              {
+                "id": "U3",
+                "question": "Did the same funds actually move along these paths? Onward links record timing within 30 minutes, not where funds came from.",
+                "references": [
+                  "P11",
+                  "P41",
+                  "P51"
+                ]
+              },
+              {
+                "id": "U4",
+                "question": "Are the contributing senders connected to each other in any way not recorded here, such as identity data or out-of-window activity?",
+                "references": [
+                  "I1",
+                  "I4",
+                  "I5"
+                ]
+              }
+            ],
+            "claims": {
+              "event": [
+                {
+                  "id": "E11",
+                  "transfer": "T011431",
+                  "sender": "A-57720",
+                  "receiver": "A-10859",
+                  "amount_minor": 28000,
+                  "event_time_ms": 1794924300000,
+                  "device": "D-47930"
+                },
+                {
+                  "id": "E12",
+                  "transfer": "T011610",
+                  "sender": "A-67293",
+                  "receiver": "A-10859",
+                  "amount_minor": 39000,
+                  "event_time_ms": 1794926220000,
+                  "device": "D-35545"
+                },
+                {
+                  "id": "E13",
+                  "transfer": "T011583",
+                  "sender": "A-10859",
+                  "receiver": "A-78340",
+                  "amount_minor": 150000,
+                  "event_time_ms": 1794925980000,
+                  "device": "D-79802"
+                },
+                {
+                  "id": "E14",
+                  "transfer": "T011600",
+                  "sender": "A-78340",
+                  "receiver": "A-75793",
+                  "amount_minor": 120000,
+                  "event_time_ms": 1794926160000,
+                  "device": "D-79802"
+                },
+                {
+                  "id": "E15",
+                  "transfer": "T011670",
+                  "sender": "A-10859",
+                  "receiver": "A-78340",
+                  "amount_minor": 95000,
+                  "event_time_ms": 1794927000000,
+                  "device": "D-79802"
+                },
+                {
+                  "id": "E16",
+                  "transfer": "T011628",
+                  "sender": "A-75793",
+                  "receiver": "A-92332",
+                  "amount_minor": 117500,
+                  "event_time_ms": 1794926460000,
+                  "device": "D-10265"
+                },
+                {
+                  "id": "E17",
+                  "transfer": "T011695",
+                  "sender": "A-78340",
+                  "receiver": "A-85287",
+                  "amount_minor": 118000,
+                  "event_time_ms": 1794927300000,
+                  "device": "D-79802"
+                },
+                {
+                  "id": "E21",
+                  "transfer": "T033316",
+                  "sender": "A-37471",
+                  "receiver": "A-20636",
+                  "amount_minor": 6000,
+                  "event_time_ms": 1795190580000,
+                  "device": "D-49226"
+                },
+                {
+                  "id": "E22",
+                  "transfer": "T033368",
+                  "sender": "A-75147",
+                  "receiver": "A-20636",
+                  "amount_minor": 5500,
+                  "event_time_ms": 1795191120000,
+                  "device": "D-67770"
+                },
+                {
+                  "id": "E23",
+                  "transfer": "T033506",
+                  "sender": "A-20636",
+                  "receiver": "A-36729",
+                  "amount_minor": 30000,
+                  "event_time_ms": 1795192800000,
+                  "device": "D-52544"
+                },
+                {
+                  "id": "E31",
+                  "transfer": "T018004",
+                  "sender": "A-42687",
+                  "receiver": "A-28137",
+                  "amount_minor": 4000,
+                  "event_time_ms": 1795003380000,
+                  "device": "D-94992"
+                },
+                {
+                  "id": "E41",
+                  "transfer": "T003057",
+                  "sender": "A-76091",
+                  "receiver": "A-37573",
+                  "amount_minor": 61000,
+                  "event_time_ms": 1794823320000,
+                  "device": "D-16311"
+                },
+                {
+                  "id": "E42",
+                  "transfer": "T003248",
+                  "sender": "A-11724",
+                  "receiver": "A-37573",
+                  "amount_minor": 66000,
+                  "event_time_ms": 1794825840000,
+                  "device": "D-17121"
+                },
+                {
+                  "id": "E43",
+                  "transfer": "T003168",
+                  "sender": "A-37573",
+                  "receiver": "A-38045",
+                  "amount_minor": 196000,
+                  "event_time_ms": 1794824760000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E44",
+                  "transfer": "T003182",
+                  "sender": "A-38045",
+                  "receiver": "A-93288",
+                  "amount_minor": 191000,
+                  "event_time_ms": 1794824940000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E45",
+                  "transfer": "T003201",
+                  "sender": "A-93288",
+                  "receiver": "A-63022",
+                  "amount_minor": 187500,
+                  "event_time_ms": 1794825180000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E46",
+                  "transfer": "T003222",
+                  "sender": "A-63022",
+                  "receiver": "A-54215",
+                  "amount_minor": 184000,
+                  "event_time_ms": 1794825480000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E47",
+                  "transfer": "T003391",
+                  "sender": "A-37573",
+                  "receiver": "A-38045",
+                  "amount_minor": 176000,
+                  "event_time_ms": 1794827520000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E48",
+                  "transfer": "T003416",
+                  "sender": "A-38045",
+                  "receiver": "A-93288",
+                  "amount_minor": 172500,
+                  "event_time_ms": 1794827700000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E49",
+                  "transfer": "T003433",
+                  "sender": "A-93288",
+                  "receiver": "A-63022",
+                  "amount_minor": 169000,
+                  "event_time_ms": 1794827940000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E40",
+                  "transfer": "T003454",
+                  "sender": "A-63022",
+                  "receiver": "A-54215",
+                  "amount_minor": 166000,
+                  "event_time_ms": 1794828240000,
+                  "device": "D-45880"
+                },
+                {
+                  "id": "E51",
+                  "transfer": "T022417",
+                  "sender": "A-85076",
+                  "receiver": "A-83577",
+                  "amount_minor": 19000,
+                  "event_time_ms": 1795057260000,
+                  "device": "D-78356"
+                },
+                {
+                  "id": "E52",
+                  "transfer": "T022572",
+                  "sender": "A-83577",
+                  "receiver": "A-56768",
+                  "amount_minor": 172000,
+                  "event_time_ms": 1795059000000,
+                  "device": "D-73452"
+                },
+                {
+                  "id": "E53",
+                  "transfer": "T022592",
+                  "sender": "A-56768",
+                  "receiver": "A-83094",
+                  "amount_minor": 169500,
+                  "event_time_ms": 1795059180000,
+                  "device": "D-96125"
+                },
+                {
+                  "id": "E54",
+                  "transfer": "T022609",
+                  "sender": "A-83094",
+                  "receiver": "A-43725",
+                  "amount_minor": 167000,
+                  "event_time_ms": 1795059360000,
+                  "device": "D-40018"
+                },
+                {
+                  "id": "E55",
+                  "transfer": "T022629",
+                  "sender": "A-43725",
+                  "receiver": "A-14799",
+                  "amount_minor": 164000,
+                  "event_time_ms": 1795059600000,
+                  "device": "D-13859"
+                },
+                {
+                  "id": "E56",
+                  "transfer": "T022649",
+                  "sender": "A-14799",
+                  "receiver": "A-39382",
+                  "amount_minor": 161500,
+                  "event_time_ms": 1795059900000,
+                  "device": "D-40018"
+                },
+                {
+                  "id": "E61",
+                  "transfer": "T005750",
+                  "sender": "A-10868",
+                  "receiver": "A-85921",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794855900000,
+                  "device": "D-61312"
+                },
+                {
+                  "id": "E62",
+                  "transfer": "T005934",
+                  "sender": "A-30679",
+                  "receiver": "A-85921",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794858060000,
+                  "device": "D-11053"
+                },
+                {
+                  "id": "E63",
+                  "transfer": "T005978",
+                  "sender": "A-35236",
+                  "receiver": "A-85921",
+                  "amount_minor": 2500,
+                  "event_time_ms": 1794858600000,
+                  "device": "D-25672"
+                },
+                {
+                  "id": "E64",
+                  "transfer": "T005888",
+                  "sender": "A-85921",
+                  "receiver": "A-10758",
+                  "amount_minor": 9500,
+                  "event_time_ms": 1794857400000,
+                  "device": "D-97117"
+                }
+              ],
+              "indicator": [
+                {
+                  "id": "I1",
+                  "indicator": "fan_in:A-10859:1794924000000",
+                  "account": "A-10859",
+                  "window_start_ms": 1794924000000,
+                  "window_end_ms": 1794927600000,
+                  "senders": 6,
+                  "transfers": 6,
+                  "total_minor": 204000,
+                  "contributing": [
+                    "T011431",
+                    "T011465",
+                    "T011494",
+                    "T011536",
+                    "T011572",
+                    "T011610"
+                  ]
+                },
+                {
+                  "id": "I2",
+                  "indicator": "fan_in:A-20636:1795190400000",
+                  "account": "A-20636",
+                  "window_start_ms": 1795190400000,
+                  "window_end_ms": 1795194000000,
+                  "senders": 6,
+                  "transfers": 6,
+                  "total_minor": 36000,
+                  "contributing": [
+                    "T033316",
+                    "T033368",
+                    "T033403",
+                    "T033439",
+                    "T033474",
+                    "T033495"
+                  ]
+                },
+                {
+                  "id": "I3",
+                  "indicator": "fan_in:A-28137:1795003200000",
+                  "account": "A-28137",
+                  "window_start_ms": 1795003200000,
+                  "window_end_ms": 1795006800000,
+                  "senders": 7,
+                  "transfers": 7,
+                  "total_minor": 29500,
+                  "contributing": [
+                    "T018004",
+                    "T018035",
+                    "T018065",
+                    "T018090",
+                    "T018160",
+                    "T018198",
+                    "T018248"
+                  ]
+                },
+                {
+                  "id": "I4",
+                  "indicator": "fan_in:A-37573:1794823200000",
+                  "account": "A-37573",
+                  "window_start_ms": 1794823200000,
+                  "window_end_ms": 1794826800000,
+                  "senders": 7,
+                  "transfers": 7,
+                  "total_minor": 379500,
+                  "contributing": [
+                    "T003057",
+                    "T003091",
+                    "T003124",
+                    "T003154",
+                    "T003248",
+                    "T003287",
+                    "T003319"
+                  ]
+                },
+                {
+                  "id": "I5",
+                  "indicator": "fan_in:A-83577:1795057200000",
+                  "account": "A-83577",
+                  "window_start_ms": 1795057200000,
+                  "window_end_ms": 1795060800000,
+                  "senders": 8,
+                  "transfers": 8,
+                  "total_minor": 174500,
+                  "contributing": [
+                    "T022417",
+                    "T022437",
+                    "T022451",
+                    "T022478",
+                    "T022495",
+                    "T022519",
+                    "T022542",
+                    "T022561"
+                  ]
+                },
+                {
+                  "id": "I6",
+                  "indicator": "fan_in:A-85921:1794855600000",
+                  "account": "A-85921",
+                  "window_start_ms": 1794855600000,
+                  "window_end_ms": 1794859200000,
+                  "senders": 6,
+                  "transfers": 6,
+                  "total_minor": 15000,
+                  "contributing": [
+                    "T005750",
+                    "T005789",
+                    "T005830",
+                    "T005868",
+                    "T005934",
+                    "T005978"
+                  ]
+                }
+              ],
+              "onward_path": [
+                {
+                  "id": "P11",
+                  "transfers": [
+                    "T011431",
+                    "T011583",
+                    "T011600",
+                    "T011628"
+                  ],
+                  "from_indicator": "fan_in:A-10859:1794924000000",
+                  "ends_at": "A-92332"
+                },
+                {
+                  "id": "P12",
+                  "transfers": [
+                    "T011610",
+                    "T011670",
+                    "T011695"
+                  ],
+                  "from_indicator": "fan_in:A-10859:1794924000000",
+                  "ends_at": "A-85287"
+                },
+                {
+                  "id": "P13",
+                  "transfers": [
+                    "T011431",
+                    "T011583",
+                    "T011695"
+                  ],
+                  "from_indicator": "fan_in:A-10859:1794924000000",
+                  "ends_at": "A-85287"
+                },
+                {
+                  "id": "P21",
+                  "transfers": [
+                    "T033368",
+                    "T033506"
+                  ],
+                  "from_indicator": "fan_in:A-20636:1795190400000",
+                  "ends_at": "A-36729"
+                },
+                {
+                  "id": "P41",
+                  "transfers": [
+                    "T003057",
+                    "T003168",
+                    "T003182",
+                    "T003201",
+                    "T003222"
+                  ],
+                  "from_indicator": "fan_in:A-37573:1794823200000",
+                  "ends_at": "A-54215"
+                },
+                {
+                  "id": "P42",
+                  "transfers": [
+                    "T003248",
+                    "T003391",
+                    "T003416",
+                    "T003433",
+                    "T003454"
+                  ],
+                  "from_indicator": "fan_in:A-37573:1794823200000",
+                  "ends_at": "A-54215"
+                },
+                {
+                  "id": "P51",
+                  "transfers": [
+                    "T022417",
+                    "T022572",
+                    "T022592",
+                    "T022609",
+                    "T022629",
+                    "T022649"
+                  ],
+                  "from_indicator": "fan_in:A-83577:1795057200000",
+                  "ends_at": "A-39382"
+                },
+                {
+                  "id": "P61",
+                  "transfers": [
+                    "T005750",
+                    "T005888"
+                  ],
+                  "from_indicator": "fan_in:A-85921:1794855600000",
+                  "ends_at": "A-10758"
+                }
+              ],
+              "onward_reach": [
+                {
+                  "id": "R1",
+                  "indicator": "fan_in:A-10859:1794924000000",
+                  "max_depth": 3,
+                  "terminal_accounts": [
+                    "A-92332",
+                    "A-85287"
+                  ],
+                  "route_accounts": [
+                    "A-10859",
+                    "A-78340",
+                    "A-75793",
+                    "A-85287",
+                    "A-92332"
+                  ]
+                },
+                {
+                  "id": "R2",
+                  "indicator": "fan_in:A-20636:1795190400000",
+                  "max_depth": 1,
+                  "terminal_accounts": [
+                    "A-36729"
+                  ],
+                  "route_accounts": [
+                    "A-20636",
+                    "A-36729"
+                  ]
+                },
+                {
+                  "id": "R3",
+                  "indicator": "fan_in:A-28137:1795003200000",
+                  "max_depth": 0,
+                  "terminal_accounts": [],
+                  "route_accounts": [
+                    "A-28137"
+                  ]
+                },
+                {
+                  "id": "R4",
+                  "indicator": "fan_in:A-37573:1794823200000",
+                  "max_depth": 4,
+                  "terminal_accounts": [
+                    "A-54215"
+                  ],
+                  "route_accounts": [
+                    "A-37573",
+                    "A-38045",
+                    "A-93288",
+                    "A-63022",
+                    "A-54215"
+                  ]
+                },
+                {
+                  "id": "R5",
+                  "indicator": "fan_in:A-83577:1795057200000",
+                  "max_depth": 5,
+                  "terminal_accounts": [
+                    "A-39382"
+                  ],
+                  "route_accounts": [
+                    "A-83577",
+                    "A-56768",
+                    "A-83094",
+                    "A-43725",
+                    "A-14799",
+                    "A-39382"
+                  ]
+                },
+                {
+                  "id": "R6",
+                  "indicator": "fan_in:A-85921:1794855600000",
+                  "max_depth": 1,
+                  "terminal_accounts": [
+                    "A-10758"
+                  ],
+                  "route_accounts": [
+                    "A-85921",
+                    "A-10758"
+                  ]
+                }
+              ],
+              "shared_device": [
+                {
+                  "id": "S1",
+                  "device": "D-79802",
+                  "accounts": [
+                    "A-10859",
+                    "A-78340"
+                  ],
+                  "on_route_of": "fan_in:A-10859:1794924000000"
+                },
+                {
+                  "id": "S2",
+                  "device": "D-45880",
+                  "accounts": [
+                    "A-37573",
+                    "A-38045",
+                    "A-93288",
+                    "A-63022"
+                  ],
+                  "on_route_of": "fan_in:A-37573:1794823200000"
+                },
+                {
+                  "id": "S3",
+                  "device": "D-40018",
+                  "accounts": [
+                    "A-83094",
+                    "A-14799"
+                  ],
+                  "on_route_of": "fan_in:A-83577:1795057200000"
+                },
+                {
+                  "id": "S4",
+                  "device": "D-40018",
+                  "accounts": [
+                    "A-83094",
+                    "A-14799",
+                    "A-34114"
+                  ],
+                  "on_route_of": null
+                },
+                {
+                  "id": "S5",
+                  "device": "D-30793",
+                  "accounts": [
+                    "A-36729",
+                    "A-69026"
+                  ],
+                  "on_route_of": null
+                }
+              ],
+              "absence": [
+                {
+                  "id": "B1",
+                  "kind": "no_shared_device_on_route",
+                  "subject": "fan_in:A-20636:1795190400000"
+                },
+                {
+                  "id": "B2",
+                  "kind": "no_shared_device_on_route",
+                  "subject": "fan_in:A-28137:1795003200000"
+                },
+                {
+                  "id": "B3",
+                  "kind": "no_shared_device_on_route",
+                  "subject": "fan_in:A-85921:1794855600000"
+                },
+                {
+                  "id": "N11",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T011628"
+                },
+                {
+                  "id": "N12",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T011695"
+                },
+                {
+                  "id": "N21",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T033316"
+                },
+                {
+                  "id": "N22",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T033506"
+                },
+                {
+                  "id": "N31",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T018004"
+                },
+                {
+                  "id": "N32",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T018035"
+                },
+                {
+                  "id": "N33",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T018065"
+                },
+                {
+                  "id": "N34",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T018090"
+                },
+                {
+                  "id": "N35",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T018160"
+                },
+                {
+                  "id": "N36",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T018198"
+                },
+                {
+                  "id": "N37",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T018248"
+                },
+                {
+                  "id": "N41",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T003222"
+                },
+                {
+                  "id": "N42",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T003454"
+                },
+                {
+                  "id": "N51",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T022649"
+                },
+                {
+                  "id": "N61",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T005888"
+                },
+                {
+                  "id": "N62",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T005934"
+                },
+                {
+                  "id": "N63",
+                  "kind": "no_onward_link_from_transfer",
+                  "subject": "T005978"
+                },
+                {
+                  "id": "X11",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-92332"
+                },
+                {
+                  "id": "X12",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-85287"
+                },
+                {
+                  "id": "X21",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-36729"
+                },
+                {
+                  "id": "X41",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-54215"
+                },
+                {
+                  "id": "X51",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-39382"
+                },
+                {
+                  "id": "X61",
+                  "kind": "no_fan_in_alert_for_account",
+                  "subject": "A-10758"
+                }
+              ],
+              "count": [
+                {
+                  "id": "C1",
+                  "pattern": "fan_in_alerts",
+                  "value": 6
+                },
+                {
+                  "id": "C2",
+                  "pattern": "transfers",
+                  "value": 50000
+                },
+                {
+                  "id": "C3",
+                  "pattern": "onward_links",
+                  "value": 691
+                },
+                {
+                  "id": "C4",
+                  "pattern": "accounts",
+                  "value": 12072
+                },
+                {
+                  "id": "C5",
+                  "pattern": "devices",
+                  "value": 12321
+                }
+              ]
+            }
+          },
+          "name": "submit_case_note",
+          "type": "tool_use"
+        }
+      ],
+      "model": "claude-opus-5-5",
+      "role": "assistant",
+      "stop_details": null,
+      "stop_reason": "tool_use",
+      "stop_sequence": null,
+      "type": "message",
+      "usage": {
+        "cache_creation": {
+          "ephemeral_1h_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 5936
+        },
+        "cache_creation_input_tokens": 5936,
+        "cache_read_input_tokens": 20117,
+        "input_tokens": 2,
+        "output_tokens": 10129,
+        "output_tokens_details": {
+          "thinking_tokens": 1098
+        },
+        "service_tier": "standard"
+      }
+    }
+  }
+]
