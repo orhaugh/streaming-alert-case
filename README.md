@@ -149,6 +149,7 @@ the model runs in your region itself.
 | `tables/case.sqlite` | The same records as tables, for the comparison only |
 | `claims/planted.json` | Deliberately unsupported claims the checker must reject |
 | `runs/recorded/` | Recorded agent runs, each with its transcript, output, verdicts and score |
+| `runs/superseded/` | Runs recorded with an earlier wording of the claim types, kept and still verified |
 
 ## The pipeline
 
@@ -206,7 +207,7 @@ type, and is judged by one rule (`alertcase/claims.py`):
 | `event` | a transfer exists with the stated sender, receiver, amount, time and device |
 | `indicator` | a fan-in indicator has the stated values and exactly the stated contributing transfers |
 | `onward_path` | each step is a recorded onward link, and the path starts at an alert and comes to rest where stated |
-| `onward_reach` | an alert's longest chain, resting accounts and route accounts (the alerted account and every account paid by an onward transfer in its chains) |
+| `onward_reach` | an alert's longest chain; its resting accounts (paid by the last transfer of a chain of one or more onward links); its route accounts (the alerted account and every account paid by an onward transfer in its chains) |
 | `shared_device` | a device sent from exactly the stated accounts on an alert's routes |
 | `absence` | no shared device on a route, no onward link from a transfer, no alert for an account |
 | `count` | the number of alerts, transfers, onward links, accounts or devices |
@@ -246,24 +247,39 @@ replaces a recorded one. A recorded run keeps the provider and the region,
 never the account. Error text and provider responses are scrubbed of ARNs,
 account ids and the AWS profile's name before they are written.
 
-Before any run was recorded, one live run through Bedrock checked the harness
-end to end. It completed, with 48 of its 49 claims supported. The one it
-missed counted the alert's senders among the accounts "on its routes". That
-was a fair reading of the claim's wording, which did not say whether senders
-count, so the wording now says exactly what the checker has always meant.
-Both arms are given it. The live run is not part of any result.
+The claim types' wording was made exact twice, and the checker's rules never
+changed:
+
+1. **Route accounts.** Before any run was recorded, one live run through
+   Bedrock checked the harness end to end. It completed, with 48 of its 49
+   claims supported. The one it missed counted the alert's senders among the
+   accounts "on its routes", a fair reading of wording that did not say
+   whether senders count. The wording now says they do not. That live run is
+   not part of any result.
+2. **Resting accounts.** The first recorded set (a case note and three runs
+   per arm) completed with correctness 1.00 in every run. In five of its six
+   comparison runs, in both arms, one claim went unsupported. It listed the
+   alerted account among the benign alert's resting accounts, because three
+   of its contributing transfers were never passed on. The wording did not say
+   whether such a transfer ends a chain of no links. It now says what the
+   checker computes, and that such a transfer is stated with an absence claim.
+   That set was superseded and re-recorded. It is kept unchanged in
+   `runs/superseded/first-wording/`, and `verify.py` still checks it.
+
+Both arms are always given the same wording.
 
 **The recorded case note** is `runs/recorded/case-note/case_note.md`. It is
 from the graph arm, through Amazon Bedrock on 13 November 2026, made with
 `investigate.py --provider bedrock --record case-note`.
 
-- The agent made 9 queries in 5 model requests, over 108 seconds.
-- It submitted 9 findings, 3 hypotheses and 4 unresolved questions.
-- The checker supported all 50 of its claims. They cover all seven required
-  facts, and all 59 distinct ids it cites resolve.
-- Its hypotheses say what the data does not establish. For one device sending
-  from three accounts, it notes that the data records device use, not
-  ownership or identity.
+- The agent made 9 queries in 5 model requests, over 113 seconds.
+- It submitted 10 findings, 3 hypotheses and 5 unresolved questions.
+- The checker supported all 51 of its claims. They cover all seven required
+  facts, and all 60 distinct ids it cites resolve.
+- Its hypotheses say what the data does not establish: one device sending
+  from three accounts "does not prove common ownership or fraud". Its last
+  open question says completeness beyond the 55 recorded events is not
+  established.
 
 The harness is also tested against a scripted stand-in client
 (`tests/test_agent_loop.py`). That checks the loop, the budgets and the
@@ -304,35 +320,35 @@ number below from them.
 |---|---|---|
 | Runs completed | 3 of 3 | 3 of 3 |
 | Correctness, each run | 1.00, 1.00, 1.00 | 1.00, 1.00, 1.00 |
-| Claims made, each run | 52, 43, 44 | 41, 46, 31 |
-| Claims not supported, each run | 1, 1, 1 | 1, 1, 0 |
-| Reference validity | 1.0 in every run | 1.0 in every run |
-| Queries, mean (none failed) | 9 | 5.3 |
-| Model requests, mean | 5 | 3.3 |
-| Input tokens, mean, cache included | 40,629 | 23,007 |
-| Output tokens, mean | 9,108 | 7,103 |
-| Seconds, mean | 110 | 86 |
+| Claims made, each run | 50, 53, 41 | 31, 49, 30 |
+| Claims not supported, each run | 0, 0, 0 | 0, 0, 0 |
+| Reference validity, each run | 1.0, 0.984, 1.0 | 1.0, 1.0, 1.0 |
+| Queries, mean (none failed) | 9.7 | 5.3 |
+| Model requests, mean | 4.7 | 3.3 |
+| Input tokens, mean, cache included | 38,357 | 23,044 |
+| Output tokens, mean | 8,432 | 5,991 |
+| Seconds, mean | 99 | 71 |
 
 What it shows, and what it does not:
 
 - **No difference in correctness here.** Both arms covered all seven required
-  facts in every run, and every id they cited exists. The table arm got there
-  with fewer queries and fewer tokens.
+  facts in every run, and the checker supported every claim either made. The
+  table arm got there with fewer queries and fewer tokens.
 - **Neither arm used the graph to traverse.** The graph agent asked for single
   onward links, never a variable-length or multi-hop path, and joined them
-  itself. The table agent selected whole tables once or twice, and read 73 to
-  77 rows in all. At 55 transfers the whole case fits in the model's context,
+  itself. The table agent selected two whole tables in each run, and read 73 to
+  75 rows in all. At 55 transfers the whole case fits in the model's context,
   so following relationships in the store saves it nothing. Whether the graph
   helps when the evidence does not fit is not tested here.
-- **One unsupported claim, made in five of the six runs, in both arms.** It
-  listed A-9895 among the benign alert's resting accounts, because three of
-  its contributing transfers were never passed on. The claim type does not say
-  whether a contributing transfer that is not passed on ends a chain of zero
-  links; the checker counts only chains of at least one onward link. This is a
-  gap in the claim vocabulary, not a factual error, and it is left as
-  recorded.
+- **One id in prose did not resolve.** In graph run 2, an unresolved question
+  names device D-585 and corrects itself to D-785 in the same sentence. D-585
+  is not in the dataset. Reference validity counts it; the checker, which
+  judges claims and not prose, has nothing to judge.
 - **The sample is small.** Three runs per arm on one dataset are
   observations, not statistically tested differences.
+- **The superseded set agrees.** The set recorded with the first wording,
+  before resting accounts were defined exactly, also had correctness 1.00 in
+  every run. The table arm also used fewer queries there (5.3 against 9).
 
 ## What ran
 
@@ -347,11 +363,12 @@ On macOS 26.3.1, arm64, on 13 November 2026:
   from ap-south-1, accepted and answered by `claude-opus-5-5`.
 - `investigate.py --provider bedrock --record case-note` and
   `compare.py --provider bedrock --runs 3 --record comparison-2026-11-13`:
-  seven recorded runs, all completed (see above). One live run before them
-  checked the harness and is not recorded.
-- `verify.py`: 23 of 23 checks passed. That is 9 on the store, 5 on the
-  checker, 1 on the tables, 7 on the recorded runs and 1 on the comparison's
-  summary.
+  seven recorded runs, all completed (see above). The same two commands made
+  the superseded set first. One live run before either checked the harness and
+  is not recorded.
+- `verify.py`: 31 of 31 checks passed. That is 9 on the store, 5 on the
+  checker and 1 on the tables. Then 7 on the recorded runs and 1 on their
+  comparison's summary, and the same 8 again on the superseded set.
 - `python -m unittest`: 15 tests passed.
 - Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, boto3 and botocore
   1.44.2, installed with `--require-hashes` from `requirements-bedrock.txt`.
@@ -370,8 +387,6 @@ store checks.
 - **Larger evidence:** the comparison used one small dataset, three runs per
   arm. Whether the graph helps an agent when the evidence does not fit in its
   context is not tested.
-- **Resting accounts:** the claim type for them is ambiguous about a
-  contributing transfer that is not passed on (see the comparison).
 - **The Claude API path:** the recorded runs went through Amazon Bedrock. The
   Claude API path is tested only with the stand-in client.
 - The `relate` command line and Relate's MCP server were not run. The store

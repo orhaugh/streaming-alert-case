@@ -1,0 +1,530 @@
+{
+  "claims": {
+    "event": [
+      {
+        "id": "e1",
+        "transfer": "T0007",
+        "sender": "A-9278",
+        "receiver": "A-5092",
+        "amount_minor": 138000,
+        "event_time_ms": 1794302640000,
+        "device": "D-568"
+      },
+      {
+        "id": "e2",
+        "transfer": "T0008",
+        "sender": "A-5092",
+        "receiver": "A-2897",
+        "amount_minor": 135000,
+        "event_time_ms": 1794302790000,
+        "device": "D-568"
+      },
+      {
+        "id": "e3",
+        "transfer": "T0009",
+        "sender": "A-2897",
+        "receiver": "A-4989",
+        "amount_minor": 132000,
+        "event_time_ms": 1794302985000,
+        "device": "D-568"
+      },
+      {
+        "id": "e4",
+        "transfer": "T0014",
+        "sender": "A-9278",
+        "receiver": "A-5092",
+        "amount_minor": 210000,
+        "event_time_ms": 1794305000000,
+        "device": "D-568"
+      },
+      {
+        "id": "e5",
+        "transfer": "T0015",
+        "sender": "A-5092",
+        "receiver": "A-2897",
+        "amount_minor": 206000,
+        "event_time_ms": 1794305150000,
+        "device": "D-568"
+      },
+      {
+        "id": "e6",
+        "transfer": "T0016",
+        "sender": "A-2897",
+        "receiver": "A-4989",
+        "amount_minor": 202000,
+        "event_time_ms": 1794305290000,
+        "device": "D-568"
+      },
+      {
+        "id": "e7",
+        "transfer": "T0041",
+        "sender": "A-9895",
+        "receiver": "A-1415",
+        "amount_minor": 14000,
+        "event_time_ms": 1794322200000,
+        "device": "D-699"
+      },
+      {
+        "id": "e8",
+        "transfer": "T0055",
+        "sender": "A-1415",
+        "receiver": "A-9514",
+        "amount_minor": 90000,
+        "event_time_ms": 1794333900000,
+        "device": "D-785"
+      },
+      {
+        "id": "e9",
+        "transfer": "T0035",
+        "sender": "A-8770",
+        "receiver": "A-9895",
+        "amount_minor": 2500,
+        "event_time_ms": 1794319340000,
+        "device": "D-535"
+      },
+      {
+        "id": "e10",
+        "transfer": "T0036",
+        "sender": "A-4399",
+        "receiver": "A-9895",
+        "amount_minor": 2500,
+        "event_time_ms": 1794319745000,
+        "device": "D-450"
+      },
+      {
+        "id": "e11",
+        "transfer": "T0037",
+        "sender": "A-4792",
+        "receiver": "A-9895",
+        "amount_minor": 2500,
+        "event_time_ms": 1794320140000,
+        "device": "D-887"
+      },
+      {
+        "id": "e12",
+        "transfer": "T0002",
+        "sender": "A-4452",
+        "receiver": "A-9278",
+        "amount_minor": 42000,
+        "event_time_ms": 1794301510000,
+        "device": "D-940"
+      },
+      {
+        "id": "e13",
+        "transfer": "T0012",
+        "sender": "A-3881",
+        "receiver": "A-9278",
+        "amount_minor": 76000,
+        "event_time_ms": 1794304720000,
+        "device": "D-530"
+      }
+    ],
+    "indicator": [
+      {
+        "id": "i1",
+        "indicator": "fan_in:A-9278:1794301200000",
+        "account": "A-9278",
+        "window_start_ms": 1794301200000,
+        "window_end_ms": 1794304800000,
+        "senders": 6,
+        "transfers": 6,
+        "total_minor": 357000,
+        "contributing": [
+          "T0002",
+          "T0003",
+          "T0006",
+          "T0010",
+          "T0011",
+          "T0012"
+        ]
+      },
+      {
+        "id": "i2",
+        "indicator": "fan_in:A-9895:1794319200000",
+        "account": "A-9895",
+        "window_start_ms": 1794319200000,
+        "window_end_ms": 1794322800000,
+        "senders": 6,
+        "transfers": 6,
+        "total_minor": 15000,
+        "contributing": [
+          "T0035",
+          "T0036",
+          "T0037",
+          "T0038",
+          "T0039",
+          "T0040"
+        ]
+      }
+    ],
+    "onward_path": [
+      {
+        "id": "p1",
+        "transfers": [
+          "T0002",
+          "T0007",
+          "T0008",
+          "T0009"
+        ],
+        "from_indicator": "fan_in:A-9278:1794301200000",
+        "comes_to_rest_at": "A-4989"
+      },
+      {
+        "id": "p2",
+        "transfers": [
+          "T0003",
+          "T0007",
+          "T0008",
+          "T0009"
+        ],
+        "from_indicator": "fan_in:A-9278:1794301200000",
+        "comes_to_rest_at": "A-4989"
+      },
+      {
+        "id": "p3",
+        "transfers": [
+          "T0006",
+          "T0007",
+          "T0008",
+          "T0009"
+        ],
+        "from_indicator": "fan_in:A-9278:1794301200000",
+        "comes_to_rest_at": "A-4989"
+      },
+      {
+        "id": "p4",
+        "transfers": [
+          "T0010",
+          "T0014",
+          "T0015",
+          "T0016"
+        ],
+        "from_indicator": "fan_in:A-9278:1794301200000",
+        "comes_to_rest_at": "A-4989"
+      },
+      {
+        "id": "p5",
+        "transfers": [
+          "T0011",
+          "T0014",
+          "T0015",
+          "T0016"
+        ],
+        "from_indicator": "fan_in:A-9278:1794301200000",
+        "comes_to_rest_at": "A-4989"
+      },
+      {
+        "id": "p6",
+        "transfers": [
+          "T0012",
+          "T0014",
+          "T0015",
+          "T0016"
+        ],
+        "from_indicator": "fan_in:A-9278:1794301200000",
+        "comes_to_rest_at": "A-4989"
+      },
+      {
+        "id": "p7",
+        "transfers": [
+          "T0038",
+          "T0041"
+        ],
+        "from_indicator": "fan_in:A-9895:1794319200000",
+        "comes_to_rest_at": "A-1415"
+      },
+      {
+        "id": "p8",
+        "transfers": [
+          "T0039",
+          "T0041"
+        ],
+        "from_indicator": "fan_in:A-9895:1794319200000",
+        "comes_to_rest_at": "A-1415"
+      },
+      {
+        "id": "p9",
+        "transfers": [
+          "T0040",
+          "T0041"
+        ],
+        "from_indicator": "fan_in:A-9895:1794319200000",
+        "comes_to_rest_at": "A-1415"
+      }
+    ],
+    "onward_reach": [
+      {
+        "id": "r1",
+        "indicator": "fan_in:A-9278:1794301200000",
+        "max_depth": 3,
+        "terminal_accounts": [
+          "A-4989"
+        ],
+        "route_accounts": [
+          "A-9278",
+          "A-5092",
+          "A-2897",
+          "A-4989"
+        ]
+      },
+      {
+        "id": "r2",
+        "indicator": "fan_in:A-9895:1794319200000",
+        "max_depth": 1,
+        "terminal_accounts": [
+          "A-1415"
+        ],
+        "route_accounts": [
+          "A-9895",
+          "A-1415"
+        ]
+      }
+    ],
+    "shared_device": [
+      {
+        "id": "s1",
+        "device": "D-568",
+        "accounts": [
+          "A-9278",
+          "A-5092",
+          "A-2897"
+        ],
+        "on_route_of": "fan_in:A-9278:1794301200000"
+      }
+    ],
+    "absence": [
+      {
+        "id": "x1",
+        "kind": "no_shared_device_on_route",
+        "subject": "fan_in:A-9895:1794319200000"
+      },
+      {
+        "id": "x2",
+        "kind": "no_onward_link_from_transfer",
+        "subject": "T0035"
+      },
+      {
+        "id": "x3",
+        "kind": "no_onward_link_from_transfer",
+        "subject": "T0036"
+      },
+      {
+        "id": "x4",
+        "kind": "no_onward_link_from_transfer",
+        "subject": "T0037"
+      },
+      {
+        "id": "x5",
+        "kind": "no_onward_link_from_transfer",
+        "subject": "T0041"
+      },
+      {
+        "id": "x6",
+        "kind": "no_onward_link_from_transfer",
+        "subject": "T0009"
+      },
+      {
+        "id": "x7",
+        "kind": "no_onward_link_from_transfer",
+        "subject": "T0016"
+      },
+      {
+        "id": "x8",
+        "kind": "no_fan_in_alert_for_account",
+        "subject": "A-4989"
+      },
+      {
+        "id": "x9",
+        "kind": "no_fan_in_alert_for_account",
+        "subject": "A-1415"
+      }
+    ],
+    "count": [
+      {
+        "id": "c1",
+        "pattern": "fan_in_alerts",
+        "value": 2
+      },
+      {
+        "id": "c2",
+        "pattern": "transfers",
+        "value": 55
+      },
+      {
+        "id": "c3",
+        "pattern": "onward_links",
+        "value": 14
+      },
+      {
+        "id": "c4",
+        "pattern": "accounts",
+        "value": 48
+      },
+      {
+        "id": "c5",
+        "pattern": "devices",
+        "value": 35
+      }
+    ]
+  },
+  "findings": [
+    {
+      "id": "f1",
+      "statement": "Scope: this bounded replay (run run:72cf0e4b91a3; 55 dataset events; 3 of 3 jobs completed; clink exit status 0; not cancelled; at least 5 distinct senders per 1-hour window for fan-in; onward gap of at most 1,800,000 ms) contains 55 transfers, 48 accounts, 35 devices, 14 onward links and exactly 2 fan-in alerts.",
+      "claim_ids": [
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+        "c5"
+      ]
+    },
+    {
+      "id": "f2",
+      "statement": "Alert fan_in:A-9278:1794301200000: account A-9278, window 1794301200000 to 1794304800000 ms, 6 distinct senders, 6 transfers, total 357000 minor units. Contributing transfers: T0002, T0003, T0006, T0010, T0011, T0012.",
+      "claim_ids": [
+        "i1",
+        "e12",
+        "e13"
+      ]
+    },
+    {
+      "id": "f3",
+      "statement": "Alert fan_in:A-9895:1794319200000: account A-9895, window 1794319200000 to 1794322800000 ms, 6 distinct senders, 6 transfers, total 15000 minor units. Contributing transfers: T0035 to T0040, each 2500.",
+      "claim_ids": [
+        "i2",
+        "e9",
+        "e10",
+        "e11"
+      ]
+    },
+    {
+      "id": "f4",
+      "statement": "Onward reach of the A-9278 alert: all 6 contributing transfers are passed on. T0002, T0003 and T0006 link to T0007 (A-9278 to A-5092, 138000), which links to T0008 (A-5092 to A-2897) and then to T0009 (A-2897 to A-4989). T0010, T0011 and T0012 link to T0014 (A-9278 to A-5092, 210000), then T0015 and T0016 along the same accounts. The longest chain has 3 onward links. The route accounts are A-9278, A-5092, A-2897 and A-4989. The money comes to rest only at A-4989: T0009 and T0016 are not passed on.",
+      "claim_ids": [
+        "r1",
+        "p1",
+        "p2",
+        "p3",
+        "p4",
+        "p5",
+        "p6",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "x6",
+        "x7"
+      ]
+    },
+    {
+      "id": "f5",
+      "statement": "Onward reach of the A-9895 alert: only T0038, T0039 and T0040 are passed on, all three into T0041 (A-9895 to A-1415, 14000). T0035, T0036 and T0037 are not passed on. The longest chain has 1 onward link. The route accounts are A-9895 and A-1415, and the money comes to rest at A-1415 because T0041 is not passed on.",
+      "claim_ids": [
+        "r2",
+        "p7",
+        "p8",
+        "p9",
+        "e7",
+        "x2",
+        "x3",
+        "x4",
+        "x5"
+      ]
+    },
+    {
+      "id": "f6",
+      "statement": "Shared devices on routes: for the A-9278 alert, device D-568 sent every onward transfer (T0007, T0008, T0009, T0014, T0015, T0016) from three route accounts: A-9278, A-5092 and A-2897. For the A-9895 alert, no device was used by two or more of its route accounts (T0041 came from D-699; A-1415's only sent transfer, T0055, came from D-785).",
+      "claim_ids": [
+        "s1",
+        "e1",
+        "e2",
+        "e3",
+        "e4",
+        "e5",
+        "e6",
+        "x1",
+        "e7",
+        "e8"
+      ]
+    },
+    {
+      "id": "f7",
+      "statement": "What sets the alerts apart: both have 6 senders and 6 transfers inside one event-time hour, but they differ in the recorded relationships. The A-9278 alert passes on every contributing transfer through 3 onward links to one resting account, A-4989, and all of that is sent from one device shared by three route accounts. The A-9895 alert has small equal credits totalling 15000, half of them not passed on, a single onward hop to A-1415, and no shared device on its route. A-1415 later sent T0055 (90000) to A-9514, but no onward link from T0041 was recorded. Neither resting account has a fan-in alert of its own.",
+      "claim_ids": [
+        "i1",
+        "i2",
+        "r1",
+        "r2",
+        "s1",
+        "x1",
+        "x2",
+        "x3",
+        "x4",
+        "x5",
+        "e8",
+        "x8",
+        "x9"
+      ]
+    }
+  ],
+  "hypotheses": [
+    {
+      "id": "h1",
+      "statement": "In the A-9278 alert, quick pass-through over A-9278, A-5092 and A-2897, all sent from device D-568, could mean one party controls those accounts and is layering funds toward A-4989. The data records only that one device was shared. It does not establish ownership, identity, control or fraud.",
+      "references": [
+        "s1",
+        "r1",
+        "p1",
+        "p4"
+      ]
+    },
+    {
+      "id": "h2",
+      "statement": "The A-9895 alert could be harmless collection of many small equal payments (for example a shared bill or group contribution), with one later payment out. The lack of a shared device and the shallow onward reach fit that reading but do not prove it.",
+      "references": [
+        "i2",
+        "r2",
+        "x1"
+      ]
+    }
+  ],
+  "unresolved": [
+    {
+      "id": "u1",
+      "question": "Who controls or owns accounts A-9278, A-5092, A-2897 and device D-568? The dataset records device use, not identity.",
+      "references": [
+        "s1"
+      ]
+    },
+    {
+      "id": "u2",
+      "question": "What happens to the funds at A-4989 and A-1415 after this bounded replay? No later events are in the dataset, and A-4989 sends nothing here.",
+      "references": [
+        "x6",
+        "x7",
+        "x5"
+      ]
+    },
+    {
+      "id": "u3",
+      "question": "Is A-1415's T0055 (90000 to A-9514, about 3.25 h after T0041) related to the funds it received? It falls outside the onward gap, so no link is recorded, and the amount is larger than T0041.",
+      "references": [
+        "e7",
+        "e8",
+        "x5"
+      ]
+    },
+    {
+      "id": "u4",
+      "question": "Where did the 2500 credits T0035 to T0037 go? They were not passed on within the onward gap, and the dataset does not tie them to any later debit.",
+      "references": [
+        "x2",
+        "x3",
+        "x4"
+      ]
+    }
+  ]
+}

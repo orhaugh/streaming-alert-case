@@ -54,7 +54,7 @@ sed -n '/^## Findings/,/^## Unresolved/p' runs/recorded/case-note/case_note.md |
 
 Say: "An agent queried the same store and wrote this case note: findings,
 hypotheses and unresolved questions kept apart. Every finding cites
-structured claims, and the checker's verdict sits beside each claim: all 50
+structured claims, and the checker's verdict sits beside each claim: all 51
 supported. The hypotheses say what the data does not establish."
 
 ## 5. The checker refuses what is not true (1:25 to 1:50)
