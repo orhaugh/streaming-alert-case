@@ -75,13 +75,17 @@ CLAIM_MEANINGS = {
     "onward_path": "each consecutive pair of transfers is a recorded onward link; from_indicator: the first transfer "
                    "contributes to that indicator; comes_to_rest_at: the last transfer was paid to that account and "
                    "was not passed on",
-    "onward_reach": "for the indicator, the longest chain of onward links from its contributing transfers, the "
-                    "accounts where its routes come to rest, and every account on its routes, each as a complete set",
+    "onward_reach": "for the indicator: max_depth, the most onward links in a chain starting at one of its "
+                    "contributing transfers; terminal_accounts, the accounts paid by the last transfer of a chain, one "
+                    "that was not passed on; route_accounts, the indicator's route accounts: the alerted account and "
+                    "every account paid by an onward transfer in its chains, not the senders of its contributing "
+                    "transfers. Each list is a complete set",
     "shared_device": "the device was used to send from every listed account (two or more); on_route_of: the listed "
-                     "accounts are exactly the accounts on that indicator's routes that sent from the device",
-    "absence": "no_shared_device_on_route: no device was used by two or more accounts on the indicator's routes; "
-               "no_onward_link_from_transfer: the transfer was not passed on; no_fan_in_alert_for_account: the "
-               "account has no fan-in indicator",
+                     "accounts are exactly that indicator's route accounts (as in onward_reach) that sent from the "
+                     "device",
+    "absence": "no_shared_device_on_route: no device was used to send by two or more of the indicator's route "
+               "accounts (as in onward_reach); no_onward_link_from_transfer: the transfer was not passed on; "
+               "no_fan_in_alert_for_account: the account has no fan-in indicator",
     "count": "the number of fan-in alerts, transfers, onward links, accounts or devices in the bounded dataset",
 }
 
