@@ -355,9 +355,10 @@ On macOS 26.3.1, arm64, on 13 November 2026:
 - `python -m unittest`: 15 tests passed.
 - Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, boto3 and botocore
   1.44.2, installed with `--require-hashes` from `requirements-bedrock.txt`.
-- A fresh clone, set up exactly as in "Setup and run" with Python 3.11.9:
-  `verify.py` 15 of 15, the unit tests passed, `explore.py` ran, and
-  `./rebuild.sh` exited 0 and verified 15 of 15 again.
+- A fresh clone, set up exactly as in "Setup and run" with Python 3.11.9 and
+  `requirements.txt` only: `verify.py` 23 of 23, 15 tests passed and
+  `explore.py` ran. Then `./rebuild.sh` exited 0, and `verify.py` passed 23 of
+  23 against the rebuilt store, the recorded runs' claims included.
 
 The same pipeline, from the same image, was run on a scratch copy as part of
 the spike this repository grew from. Five fresh runs on linux/arm64 and five
