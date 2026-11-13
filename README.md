@@ -449,7 +449,12 @@ On macOS 26.3.1, arm64, on 13 November 2026:
 - `python -m unittest`: 18 tests passed.
 - Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, boto3 and botocore
   1.44.2, installed with `--require-hashes` from `requirements-bedrock.txt`.
-- PENDING_FRESH_CLONE
+- A fresh clone, set up exactly as in "Setup and run", with Python 3.11.9 and
+  `requirements.txt` only. The large store and tables unpacked from their
+  gzipped copies on first use. `verify.py` passed 57 of 57 in under ten
+  seconds, 18 tests passed, and `explore.py --case large` ran. `./rebuild.sh`
+  and `./rebuild.sh large` then exited 0, and each verified its dataset again,
+  recorded runs included, against the rebuilt store.
 
 The same pipeline, from the same image, was also run on scratch copies of the
 case during the spike this repository grew from: five fresh runs on
