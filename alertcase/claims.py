@@ -75,11 +75,14 @@ CLAIM_MEANINGS = {
     "onward_path": "each consecutive pair of transfers is a recorded onward link; from_indicator: the first transfer "
                    "contributes to that indicator; comes_to_rest_at: the last transfer was paid to that account and "
                    "was not passed on",
-    "onward_reach": "for the indicator: max_depth, the most onward links in a chain starting at one of its "
-                    "contributing transfers; terminal_accounts, the accounts paid by the last transfer of a chain, one "
-                    "that was not passed on; route_accounts, the indicator's route accounts: the alerted account and "
-                    "every account paid by an onward transfer in its chains, not the senders of its contributing "
-                    "transfers. Each list is a complete set",
+    "onward_reach": "for the indicator: max_depth, the most onward links in a chain, where a chain starts at one of "
+                    "its contributing transfers and follows onward links; terminal_accounts, its resting accounts: for "
+                    "every chain of one or more onward links that ends at a transfer that was not passed on, the "
+                    "account that last transfer paid. A contributing transfer that was not passed on starts no chain "
+                    "and adds no resting account; state it with an absence claim (no_onward_link_from_transfer). "
+                    "route_accounts, the indicator's route accounts: the alerted account and every account paid by an "
+                    "onward transfer in its chains, not the senders of its contributing transfers. Each list is a "
+                    "complete set",
     "shared_device": "the device was used to send from every listed account (two or more); on_route_of: the listed "
                      "accounts are exactly that indicator's route accounts (as in onward_reach) that sent from the "
                      "device",
