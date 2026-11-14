@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "streaming-alert-case": {
+      "command": "sh",
+      "args": ["scripts/serve-mcp.sh", "small"]
+    },
+    "streaming-alert-case-large": {
+      "command": "sh",
+      "args": ["scripts/serve-mcp.sh", "large"]
+    }
+  }
+}

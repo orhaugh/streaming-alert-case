@@ -1,0 +1,6 @@
+# Optional: the MCP client that mcp_check.py and the investigator's --backend mcp
+# use, on top of requirements.in. requirements-mcp.txt is the hashed lock, made
+# with the versions requirements-bedrock.txt pins wherever the two share one:
+#   uv pip compile requirements-mcp.in --universal --generate-hashes --python-version 3.11 -c requirements-bedrock.txt -o requirements-mcp.txt
+-r requirements.in
+mcp==2.3.0

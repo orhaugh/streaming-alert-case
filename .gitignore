@@ -11,3 +11,5 @@ __pycache__/
 /build/
 # Live agent runs: optional, need a model API key, never overwrite recorded ones.
 /runs/live/
+# The relate command line, installed by scripts/fetch-relate-cli.sh for mcp/serve.sh.
+/.relate/
