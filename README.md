@@ -572,9 +572,9 @@ On macOS 26.3.1, arm64, on 13 November 2026, and on 14 November where stated:
   the store, 5 on the checker (its answer key and four planted claims) and 1
   on the tables. Then every recorded, superseded and shakedown run, and each
   comparison's summary.
-- `python -m unittest` on 14 November: 24 tests passed. Six of them test the
-  MCP backend, and they are skipped without the relate command line or the
-  MCP client.
+- `python -m unittest` on 14 November: 29 tests passed. Seven of them test
+  the MCP backend and how it follows its server processes, and they are
+  skipped without the relate command line or the MCP client.
 - Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, boto3 and botocore
   1.44.2 and `mcp` 2.3.0, installed with `--require-hashes` from
   `requirements-bedrock.txt` and `requirements-mcp.txt`.
@@ -584,12 +584,20 @@ On macOS 26.3.1, arm64, on 13 November 2026, and on 14 November where stated:
   `./rebuild.sh large` exited 0, and each verified its dataset again, recorded
   runs included, against the rebuilt store.
 - A fresh clone of commit d94cd00 on 14 November, with Python 3.11.9. With
-  `requirements.txt` only, `verify.py` passed 58 of 58 in about ten seconds.
-  The tests passed with the six MCP tests skipped, `explore.py --case large`
-  ran, and `mcp_check.py` stopped, naming the command that installs the MCP
-  client. Then `scripts/fetch-relate-cli.sh` installed relate 1.0.1 against
-  its pin. With `requirements-mcp.txt` added, `mcp_check.py` passed 20 of 20
-  and all 24 tests passed. Neither left an untracked file.
+  `requirements.txt` only, `verify.py` passed 58 of 58 in about ten seconds,
+  `explore.py --case large` ran, and `mcp_check.py` stopped, naming the
+  command that installs the MCP client. Then `scripts/fetch-relate-cli.sh`
+  downloaded relate 1.0.1 and installed it against its pin. With
+  `requirements-mcp.txt` added, `mcp_check.py` passed 20 of 20. Neither left
+  an untracked file.
+- A fresh clone of commit bd672a2 on 14 November, with Python 3.11.9. With
+  `requirements.txt` only, `verify.py` passed 58 of 58, and the tests passed
+  with the seven MCP tests skipped. With the MCP extras, the relate binary
+  copied from the download above and checked against its pin,
+  `mcp_check.py` passed 20 of 20 and all 29 tests passed.
+  `./scripts/demo.sh --rehearse` ran all five sections with Docker. Once
+  warm, their commands took 6.3 seconds in all, the replay 3.1 of them, so
+  the video's length is set by its narration.
 
 The same pipeline, from the same image, was also run on scratch copies of the
 case during the spike this repository grew from: five fresh runs on
