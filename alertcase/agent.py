@@ -52,7 +52,13 @@ MAX_REQUESTS = 30        # model requests a run may make
 ROW_LIMIT = 200          # rows returned per query
 RESULT_CHARS = 30000     # characters returned per query
 QUERY_SECONDS = 30       # a query running longer is stopped, in either arm
-REQUEST_TIMEOUT_S = 1800 # per model request; the large case's responses are long
+REQUEST_TIMEOUT_S = 1800 # per model request, per attempt; the large case's responses are long
+MAX_RETRIES = anthropic.DEFAULT_MAX_RETRIES  # the SDK's own retries per request (2), after a timeout among others
+# Each request records its duration, its outcome and the retries the SDK took
+# to answer it (its retries_taken), and never its headers or request ids. For
+# a live demonstration, investigate.py --request-timeout 300 --max-retries 1
+# bounds a request to two attempts of five minutes, where the recorded runs
+# allowed three of thirty.
 # Tokens per response depend on the dataset (cases.py): 16,000 for the small
 # case, 32,000 for the large one, whose case note is longer.
 # On a refusal, the Claude API re-runs the request on a fallback model it
@@ -78,15 +84,16 @@ def bedrock_region() -> str | None:
     return os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
 
 
-def make_client(provider: str) -> Any:
+def make_client(provider: str, max_retries: int = MAX_RETRIES) -> Any:
     if provider == "bedrock":
         # Bedrock's runtime endpoint, where its inference profiles are served.
         # (On 13 November 2026 the Messages-API endpoint, bedrock-mantle,
         # answered 404 for Claude Opus 5.5 in ap-south-1, under both ids.)
         # Credentials come from the AWS SDK's own chain (AWS_PROFILE, SSO, the
         # environment). Nothing about the account is recorded.
-        return anthropic.AnthropicBedrock(aws_region=bedrock_region(), aws_profile=os.environ.get("AWS_PROFILE"))
-    return anthropic.Anthropic()
+        return anthropic.AnthropicBedrock(aws_region=bedrock_region(), aws_profile=os.environ.get("AWS_PROFILE"),
+                                          max_retries=max_retries)
+    return anthropic.Anthropic(max_retries=max_retries)
 
 
 _ACCOUNT_DETAILS = re.compile(r"arn:aws[a-z-]*:[^\s\"',)]*|\b\d{12}\b")
@@ -380,12 +387,14 @@ class RunResult:
     transcript: list[dict]
 
 
-def send(client: Any, provider: str, system: str, tools: list[dict], messages: list, max_tokens: int) -> Any:
-    """One model request, the same on both providers apart from the fallback."""
+def send(client: Any, provider: str, system: str, tools: list[dict], messages: list, max_tokens: int,
+         timeout: float = REQUEST_TIMEOUT_S) -> tuple[Any, int]:
+    """One model request, the same on both providers apart from the fallback.
+    Returns the response and the retries the SDK took to get it."""
     request = dict(
         model=model_for(provider),
         max_tokens=max_tokens,
-        timeout=REQUEST_TIMEOUT_S,
+        timeout=timeout,
         system=system,
         tools=tools,
         messages=messages,
@@ -393,8 +402,10 @@ def send(client: Any, provider: str, system: str, tools: list[dict], messages: l
         cache_control={"type": "ephemeral"},
     )
     if provider == "anthropic":
-        return client.beta.messages.create(**request, betas=BETAS, fallbacks="default")
-    return client.messages.create(**request)
+        raw = client.beta.messages.with_raw_response.create(**request, betas=BETAS, fallbacks="default")
+    else:
+        raw = client.messages.with_raw_response.create(**request)
+    return raw.parse(), raw.retries_taken
 
 
 def provider_error(error: Exception) -> bool:
@@ -402,15 +413,18 @@ def provider_error(error: Exception) -> bool:
     return isinstance(error, anthropic.APIError) or type(error).__module__.split(".")[0] in ("botocore", "boto3")
 
 
-def smoke(arm: str, provider: str, case: str = "small", client: Any = None) -> dict:
+def smoke(arm: str, provider: str, case: str = "small", client: Any = None, request_timeout: float = REQUEST_TIMEOUT_S,
+          max_retries: int = MAX_RETRIES) -> dict:
     """Sends a run's first request once and reports how the provider answered:
     that it accepts the request's tools, output format, effort and caching.
     Writes nothing, and runs no query."""
-    client = client or make_client(provider)
-    response = send(client, provider, system_prompt(arm, case), tools_for(arm), [{"role": "user", "content": TASK}],
-                    CASES[case].max_tokens)
+    client = client or make_client(provider, max_retries)
+    began = time.monotonic()
+    response, retries = send(client, provider, system_prompt(arm, case), tools_for(arm),
+                             [{"role": "user", "content": TASK}], CASES[case].max_tokens, request_timeout)
     usage = response.usage
     return {"provider": provider, "model_requested": model_for(provider), "model_served": response.model,
+            "seconds": round(time.monotonic() - began, 1), "retries": retries,
             "stop_reason": response.stop_reason, "blocks": [getattr(b, "type", None) for b in response.content],
             "input_tokens": usage.input_tokens, "output_tokens": usage.output_tokens,
             "cache_creation_input_tokens": getattr(usage, "cache_creation_input_tokens", None),
@@ -418,14 +432,16 @@ def smoke(arm: str, provider: str, case: str = "small", client: Any = None) -> d
 
 
 def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "small",
-        log: Callable[[str], None] = print, backend: str = "embedded") -> RunResult:
+        log: Callable[[str], None] = print, backend: str = "embedded", request_timeout: float = REQUEST_TIMEOUT_S,
+        max_retries: int = MAX_RETRIES) -> RunResult:
     """One investigation of one dataset. client is the provider's SDK client;
     tests pass a stand-in. backend "mcp" sends the graph arm's queries to
-    Relate's MCP server instead of the library. The evidence is opened before
-    the clock starts."""
+    Relate's MCP server instead of the library. request_timeout bounds each
+    attempt at a model request, and max_retries the SDK's retries of it. The
+    evidence is opened before the clock starts."""
     if backend not in BACKENDS or (backend == "mcp" and arm != "graph"):
         raise ValueError(f"backend {backend!r} is not available to the {arm} arm")
-    client = client or make_client(provider)
+    client = client or make_client(provider, max_retries)
     dataset = CASES[case]
     dataset.unpack()
     if backend == "mcp":
@@ -439,6 +455,7 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
     totals = {"input_tokens": 0, "output_tokens": 0, "cache_creation_input_tokens": 0, "cache_read_input_tokens": 0}
     tool_calls = tool_errors = requests = truncated = stopped = 0
     served: list[str] = []
+    timings: list[dict] = []  # per model request: seconds, the SDK's retries, outcome
     fallback_used = reminded = False
     status, output, stop_reason = "error", None, None
     started = datetime.now(timezone.utc)
@@ -449,7 +466,17 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
                 status = "request_budget_exhausted"
                 break
             requests += 1
-            response = send(client, provider, system, tools, messages, dataset.max_tokens)
+            began = time.monotonic()
+            try:
+                response, retries = send(client, provider, system, tools, messages, dataset.max_tokens,
+                                         request_timeout)
+            except Exception as error:
+                # What a failure took is known; how many retries preceded it is not.
+                timings.append({"request": requests, "seconds": round(time.monotonic() - began, 1),
+                                "retries": None, "outcome": f"error:{type(error).__name__}"})
+                raise
+            timings.append({"request": requests, "seconds": round(time.monotonic() - began, 1),
+                            "retries": retries, "outcome": response.stop_reason})
             stop_reason = response.stop_reason
             served.append(response.model)
             usage = response.usage
@@ -458,9 +485,10 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
             fallback_used = fallback_used or any(
                 getattr(block, "type", None) == "fallback" for block in response.content) or any(
                 getattr(entry, "type", None) == "fallback_message" for entry in (getattr(usage, "iterations", None) or []))
-            transcript.append({"request": requests, "response": _plain(response)})
+            transcript.append({**timings[-1], "response": _plain(response)})
             log(f"  request {requests}: stop_reason={stop_reason}, model={response.model}, "
-                f"tokens in={usage.input_tokens} out={usage.output_tokens}")
+                f"tokens in={usage.input_tokens} out={usage.output_tokens}, {timings[-1]['seconds']} s, "
+                f"{retries} retries")
 
             if stop_reason == "refusal":
                 status = "refused"
@@ -546,10 +574,14 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
         "effort_setting": EFFORT,
         "budgets": {"max_tool_calls": MAX_TOOL_CALLS, "max_requests": MAX_REQUESTS,
                     "max_tokens_per_response": dataset.max_tokens, "row_limit": ROW_LIMIT, "result_chars": RESULT_CHARS,
-                    "query_seconds": QUERY_SECONDS},
+                    "query_seconds": QUERY_SECONDS, "request_timeout_s": request_timeout,
+                    "max_retries": getattr(client, "max_retries", None)},
         "effort": {"tool_calls": tool_calls, "tool_errors": tool_errors, "truncated_results": truncated,
                    "stopped_queries": stopped, "requests": requests,
-                   "wall_seconds": round(time.monotonic() - clock, 1), **totals},
+                   "wall_seconds": round(time.monotonic() - clock, 1),
+                   "model_seconds": round(sum(t["seconds"] for t in timings), 1),
+                   "retries": sum(t["retries"] or 0 for t in timings), **totals},
+        "request_timings": timings,
         "started": started.isoformat(timespec="seconds"),
         "versions": {"anthropic": anthropic.__version__, "relate-db": relate.__version__,
                      "python": platform.python_version()},

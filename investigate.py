@@ -39,6 +39,12 @@ def main() -> int:
                              "mcp: it asks Relate's MCP server, over stdio")
     parser.add_argument("--record", metavar="NAME", help="write runs/recorded/NAME instead of a live run directory")
     parser.add_argument("--smoke", action="store_true", help="send one request and report; write nothing")
+    parser.add_argument("--request-timeout", type=float, default=agent.REQUEST_TIMEOUT_S, metavar="SECONDS",
+                        help=f"each attempt at a model request (default {agent.REQUEST_TIMEOUT_S}); "
+                             "300 for a live demonstration")
+    parser.add_argument("--max-retries", type=int, default=agent.MAX_RETRIES, metavar="N",
+                        help=f"the SDK's retries of a request that fails or times out (default {agent.MAX_RETRIES}); "
+                             "1 for a live demonstration")
     args = parser.parse_args()
     if args.backend == "mcp" and args.arm != "graph":
         parser.error("--backend mcp is for the graph arm")
@@ -48,7 +54,8 @@ def main() -> int:
         raise SystemExit(problem)
     if args.smoke:
         try:
-            print(json.dumps(agent.smoke(args.arm, args.provider, args.case), indent=2))
+            print(json.dumps(agent.smoke(args.arm, args.provider, args.case, request_timeout=args.request_timeout,
+                                         max_retries=args.max_retries), indent=2))
         except Exception as error:
             if not agent.provider_error(error):
                 raise
@@ -69,7 +76,8 @@ def main() -> int:
         graph_facts = facts.from_graph(graph)
     print(f"{'recorded' if args.record else 'live'} run, {args.case} case, {args.arm} arm, {args.backend} backend, "
           f"{args.provider}, model {agent.model_for(args.provider)}, effort {agent.EFFORT}")
-    result = agent.run(args.arm, provider=args.provider, case=args.case, backend=args.backend)
+    result = agent.run(args.arm, provider=args.provider, case=args.case, backend=args.backend,
+                       request_timeout=args.request_timeout, max_retries=args.max_retries)
     scored = record(result, directory, recorded=bool(args.record), events=events, graph=graph_facts,
                     title=f"Case note: fan-in alerts in a bounded replay ({args.case} case)")
     print(f"{result.status}: correctness {scored['correctness']:.2f}, {scored['supported']} of {scored['claims']} "

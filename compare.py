@@ -35,6 +35,10 @@ def main() -> int:
     parser.add_argument("--provider", choices=agent.PROVIDERS, default="anthropic",
                         help="anthropic: the Claude API (default); bedrock: Amazon Bedrock. Both arms use the same one.")
     parser.add_argument("--record", metavar="NAME", help="write runs/recorded/NAME instead of a live directory")
+    parser.add_argument("--request-timeout", type=float, default=agent.REQUEST_TIMEOUT_S, metavar="SECONDS",
+                        help=f"each attempt at a model request (default {agent.REQUEST_TIMEOUT_S})")
+    parser.add_argument("--max-retries", type=int, default=agent.MAX_RETRIES, metavar="N",
+                        help=f"the SDK's retries of a request that fails or times out (default {agent.MAX_RETRIES})")
     args = parser.parse_args()
 
     root = (Path("runs/recorded") / args.record if args.record
@@ -55,7 +59,8 @@ def main() -> int:
         order = ("graph", "table") if n % 2 else ("table", "graph")
         for arm in order:
             print(f"{arm} {n}")
-            result = agent.run(arm, provider=args.provider, case=args.case)
+            result = agent.run(arm, provider=args.provider, case=args.case, request_timeout=args.request_timeout,
+                               max_retries=args.max_retries)
             scored = record(result, root / f"{arm}-{n}", recorded=bool(args.record), events=events,
                             graph=graph_facts, title=f"Case note: {args.case} case, {arm} arm, run {n}")
             print(f"  {result.status}: correctness {scored['correctness']:.2f}, {scored['unsupported']} claim(s) not "

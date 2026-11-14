@@ -46,16 +46,34 @@ def text_only(words: str = "done") -> SimpleNamespace:
     return response([SimpleNamespace(type="text", text=words)], "end_turn")
 
 
-class ScriptedClient:
-    """Answers both request paths: client.beta.messages.create (the Claude API,
-    with the fallback beta) and client.messages.create (Bedrock)."""
+class Raw:
+    """What the SDK's with_raw_response returns: the response, and the retries it took."""
 
-    def __init__(self, replies) -> None:
+    def __init__(self, response, retries_taken: int) -> None:
+        self.response, self.retries_taken = response, retries_taken
+
+    def parse(self):
+        return self.response
+
+
+class ScriptedClient:
+    """Answers both request paths, through with_raw_response as the harness
+    asks: client.beta.messages (the Claude API, with the fallback beta) and
+    client.messages (Bedrock). retries(n) scripts the SDK's retries of request n."""
+
+    def __init__(self, replies, retries=lambda n: 0) -> None:
         self.replies = replies
+        self.retries = retries
         self.requests: list[dict] = []
         self.paths: list[str] = []
-        self.beta = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: self.create("beta", **kw)))
-        self.messages = SimpleNamespace(create=lambda **kw: self.create("messages", **kw))
+
+        def raw(path: str) -> SimpleNamespace:
+            return SimpleNamespace(create=lambda **kw: Raw(self.create(path, **kw), self.retries(len(self.requests))))
+
+        self.beta = SimpleNamespace(messages=SimpleNamespace(create=lambda **kw: self.create("beta", **kw),
+                                                             with_raw_response=raw("beta")))
+        self.messages = SimpleNamespace(create=lambda **kw: self.create("messages", **kw),
+                                        with_raw_response=raw("messages"))
 
     def create(self, path: str, **kwargs):
         self.paths.append(path)
@@ -213,6 +231,74 @@ class AgentLoopTest(unittest.TestCase):
                 cypher.close()
         finally:
             agent.QUERY_SECONDS = old
+
+    def test_each_model_request_records_its_time_retries_and_outcome(self) -> None:
+        script = {1: tool_use("MATCH (i:Indicator) RETURN i.id AS id"), 2: submit(self.output)}
+        client = ScriptedClient(lambda n: script[n], retries=lambda n: 1 if n == 1 else 0)
+        result = agent.run("graph", client=client, log=lambda _: None, request_timeout=300)
+        timings = result.meta["request_timings"]
+        self.assertEqual([(t["request"], t["retries"], t["outcome"]) for t in timings],
+                         [(1, 1, "tool_use"), (2, 0, "tool_use")])
+        self.assertTrue(all(isinstance(t["seconds"], float) and t["seconds"] >= 0 for t in timings))
+        self.assertEqual([e["retries"] for e in result.transcript if "response" in e], [1, 0])
+        self.assertEqual((result.meta["effort"]["retries"], result.meta["budgets"]["request_timeout_s"]), (1, 300))
+        self.assertEqual([r["timeout"] for r in client.requests], [300, 300])
+        recorded = json.dumps(result.meta["request_timings"])
+        for absent in ("request_id", "request-id", "headers"):
+            self.assertNotIn(absent, recorded)
+
+    def test_a_failed_model_request_records_how_long_it_took(self) -> None:
+        failure = type("ReadTimeoutError", (Exception,), {"__module__": "botocore.exceptions"})
+
+        def replies(n):
+            raise failure("read timed out")
+
+        result = agent.run("graph", client=ScriptedClient(replies), provider="bedrock", log=lambda _: None)
+        self.assertEqual(result.status, "provider_error:ReadTimeoutError")
+        self.assertEqual([(t["request"], t["retries"], t["outcome"]) for t in result.meta["request_timings"]],
+                         [(1, None, "error:ReadTimeoutError")])
+
+    def test_the_sdk_itself_reports_the_retries_it_took_on_both_providers(self) -> None:
+        """The real SDK clients with their HTTP transport replaced: nothing
+        leaves this process, and the credentials are dummies the transport
+        never sends anywhere. The first answer is an overloaded error, which
+        the SDK retries; the second is a message."""
+        import importlib.util
+
+        import anthropic
+        import httpx2
+
+        message = {"id": "msg_test", "type": "message", "role": "assistant", "model": agent.MODEL,
+                   "content": [{"type": "text", "text": "done"}], "stop_reason": "end_turn", "stop_sequence": None,
+                   "usage": {"input_tokens": 1, "output_tokens": 1}}
+
+        def transport() -> httpx2.Client:
+            answers = iter([httpx2.Response(529, json={"type": "error", "error": {"type": "overloaded_error",
+                                                                                    "message": "scripted"}}),
+                            httpx2.Response(200, json=message)])
+            return httpx2.Client(transport=httpx2.MockTransport(lambda request: next(answers)))
+
+        clients = {"anthropic": anthropic.Anthropic(api_key="test-only", max_retries=1, http_client=transport())}
+        if importlib.util.find_spec("botocore") is not None:  # requirements-bedrock.txt
+            clients["bedrock"] = anthropic.AnthropicBedrock(aws_region="us-east-1", aws_access_key="test-only",
+                                                            aws_secret_key="test-only", max_retries=1,
+                                                            http_client=transport())
+        for provider, client in clients.items():
+            response, retries = agent.send(client, provider, "system", agent.tools_for("graph"),
+                                           [{"role": "user", "content": "x"}], 100, timeout=5)
+            self.assertEqual((provider, retries, response.stop_reason), (provider, 1, "end_turn"))
+
+    def test_the_retry_setting_reaches_the_sdk_client(self) -> None:
+        old = os.environ.get("ANTHROPIC_API_KEY")
+        os.environ["ANTHROPIC_API_KEY"] = "test-only, never sent"
+        try:
+            self.assertEqual([agent.make_client("anthropic", n).max_retries for n in (0, 1)], [0, 1])
+            self.assertEqual(agent.make_client("anthropic").max_retries, agent.MAX_RETRIES)
+        finally:
+            if old is None:
+                os.environ.pop("ANTHROPIC_API_KEY", None)
+            else:
+                os.environ["ANTHROPIC_API_KEY"] = old
 
     def test_budgets_stop_a_run_that_never_answers(self) -> None:
         client = ScriptedClient(lambda n: tool_use("MATCH (n) RETURN count(n) AS n", n))
