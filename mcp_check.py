@@ -37,7 +37,6 @@ import argparse
 import hashlib
 import json
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -46,7 +45,7 @@ from pathlib import Path
 from alertcase import facts
 from alertcase.agent import GRAPH_DESCRIPTION
 from alertcase.cases import CASES, Case
-from alertcase.mcp_store import ROOT, SERVE, McpGraph, McpStore, client_missing, host_command
+from alertcase.mcp_store import ROOT, SERVE, McpGraph, McpStore, client_missing, host_command, process_exists
 from verify import Report
 
 PINNED = "relate-mcp 1.0.1"
@@ -71,12 +70,6 @@ def sha256(path: Path) -> str:
 
 def fingerprint(store: Path) -> tuple[str, list[str]]:
     return sha256(store), sorted(p.name for p in store.parent.iterdir())
-
-
-def servers_left(store: Path) -> list[str]:
-    found = subprocess.run(["pgrep", "-f", f"serve --mcp stdio --database {store.resolve()}"],
-                           capture_output=True, text=True)
-    return found.stdout.split()
 
 
 def reference_paths(events: facts.Facts, indicator: str, most_links: int = 10) -> set[tuple]:
@@ -125,13 +118,17 @@ def check_case(case: Case, absolute: list[str], report: Report) -> None:
     before = fingerprint(store)
 
     report.section(f"The {case.name} case, {case.store}, from another directory with the --config command")
+    sessions = []
     with tempfile.TemporaryDirectory() as elsewhere, McpStore(case.name, command=absolute, cwd=Path(elsewhere)) as s:
+        sessions.append(s)
         count = s.read("MATCH (t:Transfer) RETURN count(t) AS n")["rows"][0]["n"]
         report.record("absolute paths", count == len(events.transfers),
                       f"served {count} transfers, started from a temporary directory outside the checkout")
 
     report.section(f"The {case.name} case, through the MCP Python SDK, as .mcp.json starts it")
     with McpStore(case.name) as s:
+        sessions.append(s)
+        seen_alive = s.pid is not None and process_exists(s.pid)
         server = f"{s.info.server_info.name} {s.info.server_info.version}"
         offered = s.info.capabilities
         tools_only = offered.tools is not None and offered.resources is None and offered.prompts is None
@@ -182,7 +179,10 @@ def check_case(case: Case, absolute: list[str], report: Report) -> None:
         report.record("writes refused", all(refused.values()),
                       f"{', '.join(WRITES)} through read_cypher, and write_cypher: each a failed call"
                       if all(refused.values()) else f"accepted: {[k for k, ok in refused.items() if not ok]}")
-    left = servers_left(store) if shutil.which("pgrep") else None
+    # Each session's server, followed by the id its launcher announced: seen
+    # running while its session was open, and gone once the session closed.
+    left = [pid for session in sessions for pid in session.pids if process_exists(pid)]
+    followed = all(session.pids for session in sessions) and seen_alive
 
     exchange = [
         {"jsonrpc": "2.0", "id": 1, "method": "initialize",
@@ -198,11 +198,12 @@ def check_case(case: Case, absolute: list[str], report: Report) -> None:
         rpc_only = [r.get("jsonrpc") for r in replies] == ["2.0", "2.0"] and [r.get("id") for r in replies] == [1, 2]
     except ValueError:
         rpc_only = False
-    report.record("clean shutdown", server.returncode == 0 and rpc_only and not left,
-                  "stdin closed: exit status 0, stdout held only the two JSON-RPC replies, and "
-                  + ("no server process was left after the SDK's session" if left == [] else
-                     "pgrep is not available to look for a server left behind" if left is None else
-                     f"server processes left: {left}"))
+    report.record("clean shutdown", server.returncode == 0 and rpc_only and followed and not left,
+                  "stdin closed: exit status 0, stdout held only the two JSON-RPC replies; each SDK session's "
+                  "server, followed by its process id, ran while open and was gone once closed"
+                  if followed and not left else
+                  "a server's process id was not announced, or not seen while running" if not followed else
+                  f"server processes left: {left}")
 
     after = fingerprint(store)
     report.record("store unchanged", after == before,

@@ -11,6 +11,11 @@ deadline passes, and a caller that needs a row limit applies it.
 
 The session runs on an event loop in a thread of its own, so synchronous code,
 the agent's tool loop and the checks, can call it.
+
+Each server process is followed by its own id, which scripts/serve-mcp.sh
+announces before it becomes the server, not by searching the process table:
+a process listing a sandbox refuses would otherwise read as "no server left".
+A stop or close that leaves the server running raises McpError.
 """
 
 from __future__ import annotations
@@ -20,6 +25,8 @@ import concurrent.futures
 import importlib.metadata
 import importlib.util
 import json
+import os
+import re
 import tempfile
 import threading
 from dataclasses import dataclass
@@ -32,6 +39,21 @@ ROOT = Path(__file__).resolve().parent.parent
 SERVE = ROOT / "scripts" / "serve-mcp.sh"
 START_SECONDS = 120   # to start the server and complete the handshake; the large store loads in under one
 STOP_SECONDS = 30     # for the SDK to stop the server: stdin closed, 2 s, SIGTERM, 2 s, SIGKILL
+ANNOUNCED = re.compile(rb"serve-mcp\.sh: process (\d+) serves ")
+STARTED: list[int] = []  # every server process this process started, so a check can see each one gone
+
+
+def process_exists(pid: int) -> bool:
+    """Whether a process with this id exists. Signal 0 tests for it and sends
+    nothing, so no process listing is needed. The SDK stops a server only once
+    asyncio has reaped it, so a stopped server's id is gone, not a zombie."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # it exists, and belongs to someone else
+    return True
 
 
 class McpError(Exception):
@@ -82,6 +104,8 @@ class McpStore:
         self.requests: asyncio.Queue | None = None
         self.info: Any = None        # the server's answer to initialize
         self.tools: list[Any] = []   # the server's answer to tools/list
+        self.pid: int | None = None  # the server process, as the launcher announced it
+        self.pids: list[int] = []    # every server process this session started
         self.starts = 0
         try:
             self._start()
@@ -103,13 +127,16 @@ class McpStore:
 
         self._on_loop(begin(), 10)
         try:
-            self.info, self.tools = ready.result(START_SECONDS)
+            self.info, self.tools, self.pid = ready.result(START_SECONDS)
         except concurrent.futures.TimeoutError:
             self._stop()
             raise McpError(f"the MCP server did not answer the handshake within {START_SECONDS} s") from None
         except BaseException:
             self._stop()
             raise
+        if self.pid is not None:
+            self.pids.append(self.pid)
+            STARTED.append(self.pid)
         self.starts += 1
 
     async def _session(self, ready: concurrent.futures.Future) -> None:
@@ -124,7 +151,10 @@ class McpStore:
                     async with ClientSession(read, write) as session:
                         info = await session.initialize()
                         listed = await session.list_tools()
-                        ready.set_result((info, listed.tools))
+                        # Read at offset 0 without moving the file offset the
+                        # server shares: it is still writing to this file.
+                        announced = ANNOUNCED.search(os.pread(errlog.fileno(), 1 << 16, 0))
+                        ready.set_result((info, listed.tools, int(announced.group(1)) if announced else None))
                         while True:
                             item = await self.requests.get()
                             if item is None:
@@ -154,6 +184,11 @@ class McpStore:
             await asyncio.wait({task})
 
         self._on_loop(end(), STOP_SECONDS)
+        self._confirm_gone()
+
+    def _confirm_gone(self) -> None:
+        if self.pid is not None and process_exists(self.pid):
+            raise McpError(f"the MCP server, process {self.pid}, is still running after it was stopped")
 
     def restart(self) -> None:
         self._stop()
@@ -163,17 +198,20 @@ class McpStore:
         """Ends the session the way a host does: the SDK closes the server's
         stdin, and the server exits."""
         task, self.task = self.task, None
-        if task is not None:
-            async def end() -> None:
-                self.requests.put_nowait(None)
-                await asyncio.wait({task})
+        try:
+            if task is not None:
+                async def end() -> None:
+                    self.requests.put_nowait(None)
+                    await asyncio.wait({task})
 
-            try:
-                self._on_loop(end(), STOP_SECONDS)
-            except concurrent.futures.TimeoutError:
-                self.task = task
-                self._stop()
-        self._shutdown_loop()
+                try:
+                    self._on_loop(end(), STOP_SECONDS)
+                except concurrent.futures.TimeoutError:
+                    self.task = task
+                    self._stop()
+                self._confirm_gone()
+        finally:
+            self._shutdown_loop()
 
     def _shutdown_loop(self) -> None:
         if self.loop.is_running():
@@ -229,6 +267,10 @@ class McpStore:
         return {"transport": "stdio", "launcher": "scripts/serve-mcp.sh", "server": f"{server.name} {server.version}",
                 "protocol_version": self.info.protocol_version, "mcp_client": f"mcp {importlib.metadata.version('mcp')}",
                 "tools": sorted(t.name for t in self.tools), "server_starts": self.starts}
+
+    def gone(self) -> bool:
+        """Whether every server process this session started has exited."""
+        return bool(self.pids) and not any(process_exists(pid) for pid in self.pids)
 
 
 class McpGraph(Graph):

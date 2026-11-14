@@ -17,9 +17,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from alertcase import agent
+from alertcase import agent, mcp_store
 from alertcase.cases import CASES
-from alertcase.mcp_store import ROOT, McpError, McpStore, client_missing
+from alertcase.mcp_store import ROOT, McpError, McpStore, client_missing, process_exists
 from alertcase.recording import record
 from tests import test_agent_loop as loop  # the module, so its test class is not collected twice
 from tests.test_agent_loop import ScriptedClient, submit, tool_use
@@ -33,10 +33,9 @@ def missing() -> str | None:
     return None
 
 
-def servers_left(store: Path) -> list[str]:
-    found = subprocess.run(["pgrep", "-f", f"serve --mcp stdio --database {store.resolve()}"],
-                           capture_output=True, text=True)
-    return found.stdout.split()
+def started_since(mark: int) -> list[int]:
+    """The server processes started since the mark, by the ids the launcher announced."""
+    return mcp_store.STARTED[mark:]
 
 
 def sha256(path: Path) -> str:
@@ -60,8 +59,10 @@ class McpBackendTest(unittest.TestCase):
             "UNWIND range(1, 250) AS n RETURN n",  # over ROW_LIMIT: truncated the same way
             "MATCH (a:Account RETURN a",            # a syntax error: refused by both
         ]
+        mark = len(mcp_store.STARTED)
         embedded, mcp = agent.GraphQueries(self.store), agent.McpQueries("small")
         try:
+            self.assertTrue(process_exists(mcp.store.pid))  # the check sees the live server
             for query in queries:
                 (ok_e, text_e), (ok_m, text_m) = embedded(query), mcp(query)
                 self.assertEqual(ok_e, ok_m, (query, text_e, text_m))
@@ -75,7 +76,9 @@ class McpBackendTest(unittest.TestCase):
         finally:
             embedded.close()
             mcp.close()
-        self.assertEqual(servers_left(self.store), [])
+        started = started_since(mark)
+        self.assertEqual(len(started), 1)
+        self.assertFalse(any(map(process_exists, started)))
 
     def test_writes_are_refused_and_leave_the_store_as_it_was(self) -> None:
         before = sha256(self.store)
@@ -94,18 +97,24 @@ class McpBackendTest(unittest.TestCase):
         agent.QUERY_SECONDS = 0.5
         mcp = agent.McpQueries("small")
         try:
+            first = mcp.store.pid
+            self.assertTrue(process_exists(first))  # the check sees the live server
             ok, text = mcp("MATCH (a:Account), (b:Account), (c:Account), (d:Account), (e:Account) RETURN count(*) AS n")
             self.assertEqual((ok, text), (False, agent.TOO_LONG))
-            ok, text = mcp("MATCH (r:Run) RETURN r.id AS id")  # a new server answers
-            self.assertTrue(ok, text)
-            self.assertEqual(mcp.describe()["server_starts"], 2)
-            self.assertEqual(len(servers_left(self.store)), 1)  # the stopped one is gone
+            second = mcp.store.pid
+            self.assertNotEqual(second, first)
+            self.assertFalse(process_exists(first))  # the stopped server is gone, not merely unseen
+            ok, text = mcp("MATCH (r:Run) RETURN r.id AS id")
+            self.assertTrue(ok, text)  # the replacement answers
+            self.assertTrue(process_exists(second))
+            self.assertEqual((mcp.describe()["server_starts"], mcp.store.pids), (2, [first, second]))
         finally:
             agent.QUERY_SECONDS = old
             mcp.close()
-        self.assertEqual(servers_left(self.store), [])
+        self.assertTrue(mcp.store.gone())  # closing ends the replacement too
 
     def test_a_run_through_mcp_sends_the_same_requests_and_records_its_transport(self) -> None:
+        mark = len(mcp_store.STARTED)
         runs = {}
         for backend in agent.BACKENDS:
             script = {1: tool_use("MATCH (i:Indicator) RETURN i.id AS id ORDER BY id"), 2: submit(self.output)}
@@ -127,7 +136,15 @@ class McpBackendTest(unittest.TestCase):
                           (workdir / "run" / "case_note.md").read_text())
         finally:
             shutil.rmtree(workdir)
-        self.assertEqual(servers_left(self.store), [])
+        started = started_since(mark)
+        self.assertEqual(len(started), 1)  # one server, for the MCP run, and it is gone
+        self.assertFalse(any(map(process_exists, started)))
+
+    def test_the_process_check_sees_a_live_process_and_not_a_reaped_one(self) -> None:
+        self.assertTrue(process_exists(os.getpid()))
+        child = subprocess.Popen(["true"])
+        child.wait()
+        self.assertFalse(process_exists(child.pid))
 
     def test_the_mcp_backend_is_for_the_graph_arm_only(self) -> None:
         with self.assertRaises(ValueError):

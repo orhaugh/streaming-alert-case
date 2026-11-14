@@ -92,4 +92,7 @@ case "${answer}" in
     *) fail "${store} does not record a completed bounded replay; not serving it" ;;
 esac
 
+# The server keeps this process's id, so a client can follow the process it
+# owns without listing other processes.
+echo "serve-mcp.sh: process $$ serves ${store} read-only" >&2
 exec "${relate}" serve --mcp stdio --database "${store}" --read-only
