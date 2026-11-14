@@ -98,6 +98,6 @@ Claude Opus 5.5 through Amazon Bedrock.
 
 ## Links
 
-- Repository: to add once published, with the GitHub topics `relate` (required)
-  and `relate-neo4j-hackathon` (recommended).
+- Repository: https://github.com/orhaugh/streaming-alert-case, with the GitHub
+  topics `relate` (required) and `relate-neo4j-hackathon` (recommended).
 - Demo video: to add once recorded. `DEMO.md` is its script.
