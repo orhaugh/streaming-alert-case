@@ -9,8 +9,8 @@ streaming-alert-case
 ## Elevator pitch
 
 Two fraud alerts fire on the same rule. Event-time evidence from clink and
-connected context in Relate show which deserves attention, and an independent
-checker tests every structured claim the agent makes.
+connected context in Relate show why they deserve different follow-up, and an
+independent checker tests every structured claim the agent makes.
 
 ## Use case, and what connects to what
 

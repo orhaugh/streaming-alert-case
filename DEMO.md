@@ -40,7 +40,7 @@ soon after a credit, not proof that funds moved."
 ## 3. The same file, read-only, through Relate's MCP server (0:45 to 1:00)
 
 ```bash
-.venv/bin/python mcp_check.py --case small | sed -n '/as .mcp.json starts it/,/store unchanged/p' | cut -c1-150
+.venv/bin/python mcp_check.py --case small | sed -n '/as .mcp.json starts it/,/store unchanged/p' | cut -c1-118
 ```
 
 Say: "Any MCP host can open the same file through Relate's own MCP server,
@@ -50,7 +50,7 @@ every path equal to the reference, writes refused, the store unchanged."
 ## 4. A case note, recorded (1:00 to 1:25)
 
 ```bash
-grep -E -A1 '^Agent output|^- \*\*(f5|h1|u1)\*\*' runs/recorded/small-case-note-r4/case_note.md | grep -v -E '^(--)?$' | cut -c1-150
+grep -E -A1 '^Agent output|^- \*\*(f5|h1|u1)\*\*' runs/recorded/small-case-note-r4/case_note.md | grep -v -E '^(--)?$' | cut -c1-118
 ```
 
 Say: "This is model output recorded on 13 November, not generated now. An
@@ -61,7 +61,7 @@ question: the data records device use, not identity."
 ## 5. A claim the checker rejects (1:25 to 1:50)
 
 ```bash
-.venv/bin/python verify.py --case small | grep -E 'planted P[23]|checks passed' | cut -c1-150
+.venv/bin/python verify.py --case small | grep -E 'planted P[23]|checks passed' | cut -c1-118
 ```
 
 Say: "No model and no API key: every claim is checked against the original
@@ -71,10 +71,17 @@ too early. Both are rejected. This holds for this bounded replay only."
 
 ## Recording it
 
-1. A fresh clone, set up as above; a terminal about 160 columns wide.
-2. `./scripts/demo.sh --rehearse` once, to warm Docker and check every
-   section, then `git checkout -- store tables` to put the shipped store back.
-3. Start a screen recording with your microphone on, run `./scripts/demo.sh`,
-   press Enter for each section and read its "Say" text.
-4. Keep it under two minutes, upload it (for example to YouTube, unlisted or
-   public), and put the link in `SUBMISSION.md`.
+On macOS, in a fresh clone set up as above, with Docker running:
+
+1. Run `./scripts/demo.sh --rehearse`, then `git checkout -- store tables`.
+   This warms Docker and the MCP client, and puts the shipped store back.
+2. Set the terminal to 120 columns with a large font (about 18 pt), and run
+   `clear`. Every line of output fits in 120 columns; long commands wrap.
+3. Press Shift-Command-5, choose Record Selected Portion around the terminal,
+   pick your microphone under Options, and click Record.
+4. Run `./scripts/demo.sh`. Press Enter for each section and read its "Say"
+   text above.
+5. Stop the recording from the menu bar. If it runs over two minutes, trim it
+   in QuickTime Player (Edit, Trim).
+6. Upload it where judges can watch without logging in, for example YouTube
+   as Unlisted, and put the link in `SUBMISSION.md`.

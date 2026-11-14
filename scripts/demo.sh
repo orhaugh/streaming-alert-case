@@ -44,10 +44,10 @@ section "2. Two alerts, and the relationships that tell them apart" \
     ".venv/bin/python explore.py --cypher \"MATCH p = (:Transfer {id: 'T0002'})-[:PASSED_ON*]->(t:Transfer) WHERE NOT (t)-[:PASSED_ON]->() RETURN [n IN nodes(p) | n.id] AS path\""
 
 section "3. The same file, read-only, through Relate's MCP server" \
-    ".venv/bin/python mcp_check.py --case small | sed -n '/as .mcp.json starts it/,/store unchanged/p' | cut -c1-150"
+    ".venv/bin/python mcp_check.py --case small | sed -n '/as .mcp.json starts it/,/store unchanged/p' | cut -c1-118"
 
 section "4. A case note: model output recorded on 13 November 2026, not generated now" \
-    "grep -E -A1 '^Agent output|^- \*\*(f5|h1|u1)\*\*' runs/recorded/small-case-note-r4/case_note.md | grep -v -E '^(--)?$' | cut -c1-150"
+    "grep -E -A1 '^Agent output|^- \*\*(f5|h1|u1)\*\*' runs/recorded/small-case-note-r4/case_note.md | grep -v -E '^(--)?$' | cut -c1-118"
 
 section "5. A claim the checker rejects" \
-    ".venv/bin/python verify.py --case small | grep -E 'planted P[23]|checks passed' | cut -c1-150"
+    ".venv/bin/python verify.py --case small | grep -E 'planted P[23]|checks passed' | cut -c1-118"
