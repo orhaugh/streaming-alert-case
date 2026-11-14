@@ -1,37 +1,43 @@
 # Demo script, 1 minute 50 seconds
 
-This is the script for the demo video, not the video. The video is to be
-recorded from it: one terminal in the repository, with the venv installed,
-and for section 3 the relate command line (`scripts/fetch-relate-cli.sh`) and
-`requirements-mcp.txt`. Every command runs offline and needs no model or API
-key. Each section gives the time, what to run and what to say.
+This is the script for the demo video, not the video. `scripts/demo.sh` runs
+its five sections in order, showing each command, and waits for Enter between
+them; this page says what to say over each. Every command runs offline and
+needs no model or API key. The case note in section 4 is model output recorded
+on 13 November 2026, and the video should say so.
 
-## 1. Two alerts that look alike (0:00 to 0:25)
+Record from a fresh clone set up as the README describes, with Docker running
+and the MCP extras installed (`scripts/fetch-relate-cli.sh`,
+`requirements-mcp.txt`). Section 1 rebuilds `store/case.rl` from the event
+file. A rehearsal, `./scripts/demo.sh --rehearse`, runs it all without
+pausing and times each section.
+
+## 1. clink replays the events into Relate (0:00 to 0:20)
+
+```bash
+./rebuild.sh | grep -E '^(reconciled|published)|checks passed'
+.venv/bin/python explore.py --cypher "MATCH (r:Run) RETURN r.jobs_completed AS jobs_completed, r.clink_exit_status AS clink_exit_status, r.cancelled AS cancelled, r.dataset_events AS events"
+```
+
+Say: "clink, a stream engine, replays 55 synthetic transfers that arrive out
+of order. Three SQL jobs derive alerts and onward links by event time, and
+write them through clink's native Relate connector into one file. It is
+published only because every job completed and clink exited 0."
+
+## 2. Two alerts, and the relationships that tell them apart (0:20 to 0:45)
 
 ```bash
 .venv/bin/python explore.py | sed -n '/WHERE THE TWO ALERTS DIFFER/,/device shared/p'
-```
-
-Say: "Two fan-in alerts from a bounded replay of 55 synthetic transfers. Each
-fires on the same rule: six senders into one account inside an hour, and a
-debit within 30 minutes. As alert rows they differ only in their totals."
-
-Point at the four rows read from Relate: three onward links against one,
-where the candidate paths end, and device D-568 shared by three accounts on
-one alert's paths only.
-
-## 2. The relationships, from the store (0:25 to 0:45)
-
-```bash
 .venv/bin/python explore.py --cypher "MATCH p = (:Transfer {id: 'T0002'})-[:PASSED_ON*]->(t:Transfer) WHERE NOT (t)-[:PASSED_ON]->() RETURN [n IN nodes(p) | n.id] AS path"
 ```
 
-Say: "clink derived these onward links by event time and wrote them into one
-Relate file. One path query follows a candidate path from a contributing
-transfer to where it ends: T0002, T0007, T0008, T0009. An onward link records
-timing, a debit within 30 minutes of a credit, not proof that funds moved."
+Say: "Two fan-in alerts fire on the same rule: six senders into one account
+inside an hour. As alert rows they differ only in their totals. In Relate their
+relationships differ: candidate paths of three onward links against one, and
+device D-568 shared along one alert's paths. An onward link is timing, a debit
+soon after a credit, not proof that funds moved."
 
-## 3. The same file, through Relate's MCP server (0:45 to 1:00)
+## 3. The same file, read-only, through Relate's MCP server (0:45 to 1:00)
 
 ```bash
 .venv/bin/python mcp_check.py --case small | sed -n '/as .mcp.json starts it/,/store unchanged/p' | cut -c1-150
@@ -41,24 +47,34 @@ Say: "Any MCP host can open the same file through Relate's own MCP server,
 read-only. This check talks to it as an agent host does: two read-only tools,
 every path equal to the reference, writes refused, the store unchanged."
 
-## 4. The case note (1:00 to 1:25)
+## 4. A case note, recorded (1:00 to 1:25)
 
 ```bash
-sed -n '/^## Findings/,/^## Unresolved/p' runs/recorded/small-case-note-r4/case_note.md | cut -c1-160
+grep -E -A1 '^Agent output|^- \*\*(f5|h1|u1)\*\*' runs/recorded/small-case-note-r4/case_note.md | grep -v -E '^(--)?$' | cut -c1-150
 ```
 
-Say: "An agent queried the same store and wrote this case note: findings,
-hypotheses and unresolved questions kept apart. Every finding cites
-structured claims, and the checker's verdict sits beside each one."
+Say: "This is model output recorded on 13 November, not generated now. An
+agent queried the same store. Findings cite claims the checker supported,
+interpretations stay hypotheses, and who controls D-568 stays an open
+question: the data records device use, not identity."
 
 ## 5. A claim the checker rejects (1:25 to 1:50)
 
 ```bash
-.venv/bin/python verify.py | grep -E 'planted P[23]|checks passed' | cut -c1-150
+.venv/bin/python verify.py --case small | grep -E 'planted P[23]|checks passed' | cut -c1-150
 ```
 
 Say: "No model and no API key: every claim is checked against the original
 events and the graph. These planted claims are what arrival-order processing
-would have concluded: late transfer T0012 missing from the alert, and a path
-ended too early at A-5092. Both are rejected. This holds for this bounded
-dataset only, and a relationship is evidence, not proof of fraud."
+would conclude: late transfer T0012 missing from the alert, and a path ended
+too early. Both are rejected. This holds for this bounded replay only."
+
+## Recording it
+
+1. A fresh clone, set up as above; a terminal about 160 columns wide.
+2. `./scripts/demo.sh --rehearse` once, to warm Docker and check every
+   section, then `git checkout -- store tables` to put the shipped store back.
+3. Start a screen recording with your microphone on, run `./scripts/demo.sh`,
+   press Enter for each section and read its "Say" text.
+4. Keep it under two minutes, upload it (for example to YouTube, unlisted or
+   public), and put the link in `SUBMISSION.md`.

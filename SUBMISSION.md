@@ -128,4 +128,5 @@ through Amazon Bedrock.
 
 - Repository: https://github.com/orhaugh/streaming-alert-case, with the GitHub
   topics `relate` (required) and `relate-neo4j-hackathon` (recommended).
-- Demo video: to add once recorded. `DEMO.md` is its script.
+- Demo video: to add once recorded. `DEMO.md` is its script, and
+  `scripts/demo.sh` runs its five sections.

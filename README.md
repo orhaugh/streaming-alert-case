@@ -349,6 +349,17 @@ query passes its 30 seconds, and it counts every row before keeping 200. A run
 records which backend it used, and for MCP the transport, server, protocol and
 client versions.
 
+Runs recorded from 14 November also time each model request: its seconds, its
+outcome, and the retries the SDK took to answer it (`request_timings` in
+`meta.json`; no headers or request ids). Earlier recordings, the MCP one
+included, predate this and are kept as they were. Each attempt at a request is
+allowed 1,800 seconds and the SDK retries twice, so one stalled request can
+hold a run for an hour or more. For a live demonstration, bound it:
+
+```bash
+.venv/bin/python investigate.py --provider bedrock --request-timeout 300 --max-retries 1
+```
+
 Each run is labelled with the prompt revision that made it. The checker's
 rules have not changed across revisions; the agent's wording and guidance have.
 
@@ -398,8 +409,8 @@ comparison's graph runs.
   time was 1,990 seconds, against at most 183 for every earlier recorded run.
   The 16 queries took 0.28 seconds in all, so the rest was spent waiting on
   the model. The extra is close to the 1,800-second request timeout, which
-  fits one request that stalled and was retried by the SDK. The harness does
-  not time each request, so that is not established.
+  fits one request that stalled and was retried by the SDK. The harness did
+  not yet time each request, so that is not established.
 
 It is one run, kept apart from the comparison below. It shows the MCP backend
 working end to end, not that the transport leaves results unchanged.
@@ -600,6 +611,10 @@ passed the spike's nine store checks.
 - **The MCP backend ran once:** one recorded investigation, which is not a
   comparison with the library backend. It shows that the backend works end to
   end, not that the transport leaves results unchanged.
+- **Request timing, live:** it is tested against the SDK's own clients for
+  both providers, with their HTTP transport replaced, but no live request has
+  gone through it: when it was added the AWS session had expired, and no paid
+  run was made to try it.
 - The pipeline has run only in Docker on a Mac: never on a Linux host or an
   x86_64 machine.
 - clink's Relate connector is in no clink release. The image is a build of
