@@ -567,12 +567,18 @@ On macOS 26.3.1, arm64, on 13 November 2026, and on 14 November where stated:
 - Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, boto3 and botocore
   1.44.2 and `mcp` 2.3.0, installed with `--require-hashes` from
   `requirements-bedrock.txt` and `requirements-mcp.txt`.
-- A fresh clone, set up exactly as in "Setup and run", with Python 3.11.9 and
-  `requirements.txt` only. The large store and tables unpacked from their
-  gzipped copies on first use. `verify.py` passed 57 of 57 in under ten
-  seconds, 18 tests passed, and `explore.py --case large` ran. `./rebuild.sh`
-  and `./rebuild.sh large` then exited 0, and each verified its dataset again,
-  recorded runs included, against the rebuilt store.
+- A fresh clone on 13 November, set up exactly as in "Setup and run", with
+  Python 3.11.9 and `requirements.txt` only. The large store and tables
+  unpacked from their gzipped copies on first use. `./rebuild.sh` and
+  `./rebuild.sh large` exited 0, and each verified its dataset again, recorded
+  runs included, against the rebuilt store.
+- A fresh clone of commit d94cd00 on 14 November, with Python 3.11.9. With
+  `requirements.txt` only, `verify.py` passed 58 of 58 in about ten seconds.
+  The tests passed with the six MCP tests skipped, `explore.py --case large`
+  ran, and `mcp_check.py` stopped, naming the command that installs the MCP
+  client. Then `scripts/fetch-relate-cli.sh` installed relate 1.0.1 against
+  its pin. With `requirements-mcp.txt` added, `mcp_check.py` passed 20 of 20
+  and all 24 tests passed. Neither left an untracked file.
 
 The same pipeline, from the same image, was also run on scratch copies of the
 case during the spike this repository grew from: five fresh runs on
