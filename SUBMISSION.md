@@ -50,9 +50,29 @@ have given.
   (Cypher MERGE under uniqueness constraints, one transaction per batch);
   transactions shared by three concurrent writers, with conflicts refused at
   commit and retried; read-only reopening through `relate-db`; variable-length
-  Cypher path queries.
-- **Not used:** the `relate` command line, MCP, WebAssembly, Bolt, HTTP and
-  vector search.
+  Cypher path queries; Relate's own MCP server (`relate serve --mcp stdio
+  --read-only`), which serves the same file to any MCP host and can be the
+  investigator's query backend.
+- **Not used:** MCP over HTTP, the HTTP Query API, WebAssembly, Bolt and vector
+  search.
+
+## Open the case in your own agent
+
+Relate's own MCP server serves the store read-only to any MCP host. Install
+the pinned `relate` command line and run Claude Code in the checkout: it
+offers two servers, the case and the 50,000-transfer dataset, each with two
+read-only tools. Ask why the two alerts deserve different follow-up, and
+inspect the paths yourself. `mcp_check.py` checks the server as a host uses
+it: only read-only tools listed, every candidate path equal to the reference
+computed from the raw events, writes refused, the store byte for byte
+unchanged. Your agent's answers there are not checked: only the case notes
+the investigator records go through the checker.
+
+The investigator can send its queries through the same server. One recorded
+investigation of the 50,000-transfer case did, with the same prompt, tools and
+limits: all 74 of its claims are supported and cover every required fact. It
+is one run, not a comparison. It also found a difference: Relate's MCP server
+1.0.1 refuses a read built from `CALL { }` subqueries, which the library runs.
 
 ## A fair comparison, reported as it came out
 
@@ -73,22 +93,30 @@ agent can run against it.
 ## Try it
 
 ```bash
+git clone https://github.com/orhaugh/streaming-alert-case.git && cd streaming-alert-case
 python3 -m venv .venv && .venv/bin/pip install --require-hashes -r requirements.txt
 .venv/bin/python verify.py      # no model and no API key
 .venv/bin/python explore.py
 ```
 
+Optional, to open it in your own agent: `./scripts/fetch-relate-cli.sh`, then
+`claude` in the checkout, and approve the two servers. Or check the server
+first: `.venv/bin/pip install --require-hashes -r requirements-mcp.txt` and
+`.venv/bin/python mcp_check.py`.
+
 ## Built with
 
-clink (the runtime image, pinned by digest), Relate by Neo4j (`relate-db` 1.0.1
-and its C library 1.0.1), Python, SQLite, Docker, the Anthropic Python SDK,
-Claude Opus 5.5 through Amazon Bedrock.
+clink (the runtime image, pinned by digest), Relate by Neo4j (`relate-db` 1.0.1,
+its C library 1.0.1, and its command line and MCP server 1.0.1), Python,
+SQLite, Docker, the MCP Python SDK, the Anthropic Python SDK, Claude Opus 5.5
+through Amazon Bedrock.
 
 ## Third-party tools, AI tools and reused work
 
-- Third-party: Relate (`relate-db` and its C library), Docker, the Anthropic
-  Python SDK and Claude Opus 5.5 for the agent, Amazon Bedrock for the
-  recorded runs.
+- Third-party: Relate (`relate-db`, its C library, and its command line with
+  the MCP server), Docker, the MCP Python SDK 2.3.0 for the MCP client, the
+  Anthropic Python SDK and Claude Opus 5.5 for the agent, Amazon Bedrock for
+  the recorded runs.
 - AI tools: Claude Code, with Claude Opus 5.5, wrote much of the code and
   documentation, under the author's direction and review.
 - Reused work: clink is the author's own stream engine, started before the

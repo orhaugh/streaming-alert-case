@@ -141,9 +141,13 @@ Relate capabilities used:
 - **Variable-length traversal:** the candidate paths, where they end and the
   devices shared along them come from Cypher path queries
   (`alertcase/graph.py`).
+- **Relate's own MCP server, optional:** `relate serve --mcp stdio
+  --read-only` serves the same file to any MCP host, so you can question the
+  case from your own agent. The investigator can use it as its query backend
+  too. See "Open the case in your own agent".
 
-Not used: the `relate` command line, Relate's MCP server, WebAssembly, Bolt,
-HTTP and vector search.
+Not used: MCP over HTTP, WebAssembly, Bolt, the HTTP Query API and vector
+search.
 
 ## Setup and run
 
@@ -151,7 +155,7 @@ Needs Python 3.11 or later. Rebuilding a store also needs Docker, and a live
 agent run needs model credentials. Nothing else needs them.
 
 ```bash
-git clone <this repository> streaming-alert-case && cd streaming-alert-case
+git clone https://github.com/orhaugh/streaming-alert-case.git && cd streaming-alert-case
 python3 -m venv .venv
 .venv/bin/pip install --require-hashes -r requirements.txt
 
@@ -202,6 +206,64 @@ In some regions, ap-south-1 among them, Claude Opus 5.5 is offered only through
 an inference profile. Set `BEDROCK_MODEL_ID=anthropic.claude-opus-5-5` where
 the model runs in your region itself.
 
+## Open the case in your own agent (MCP, optional)
+
+Relate's own MCP server can serve either store to an MCP host, so you can ask
+your own agent why the two alerts deserve different follow-up and inspect the
+paths yourself. The server lists two tools, `read_cypher` and `get_schema`,
+and every write fails. Install the `relate` command line it runs from (1.0.1,
+checked against a pinned sha256), then check it:
+
+```bash
+./scripts/fetch-relate-cli.sh                                        # relate 1.0.1, at .relate/bin/relate
+.venv/bin/pip install --require-hashes -r requirements-mcp.txt       # the MCP Python SDK, for the check
+.venv/bin/python mcp_check.py                                        # no model, no API key
+```
+
+- **Claude Code:** run `claude` in the checkout. It reads `.mcp.json` and asks
+  you to approve two servers, `streaming-alert-case` (55 transfers) and
+  `streaming-alert-case-large` (50,000).
+- **Claude Desktop, Cursor and other hosts:** `sh scripts/serve-mcp.sh
+  --config` prints the configuration block with this checkout's absolute
+  paths.
+
+`scripts/serve-mcp.sh` is what each configuration starts. It accepts only
+relate 1.0.1, unpacks the large store on first use, and serves a store only if
+its Run record shows a completed replay. It then runs `relate serve --mcp stdio
+--database <store> --read-only`, with Relate's anonymous usage metrics turned
+off.
+
+Three prompts to start with:
+
+1. "Two fan-in alerts in this store fire on the same rule. Using only the
+   relate tools, find the recorded relationships that distinguish them, and
+   cite the transfer, account, device and indicator ids behind each statement.
+   An onward link records timing only, not that funds moved."
+2. "For each alert, list the candidate onward-transfer paths that start at its
+   contributing transfers, the accounts along them, and where each path ends
+   with no further qualifying transfer in this dataset. Show the Cypher you
+   ran."
+3. "Which devices sent transfers from more than one account on an alert's
+   paths? Name the accounts and transfers, and say what this does and does not
+   establish."
+
+On the large store, ask the same questions of its six alerts: at 50,000
+transfers the agent has to query the data, not read it.
+
+`mcp_check.py` starts the server as `.mcp.json` does and talks to it through
+the MCP Python SDK. For each dataset it checks the handshake, that only the
+two read-only tools are listed, and the schema's counts. It reads the evidence
+over MCP and requires it to equal the reference's, record for record. It runs
+the agent's worked path query for every alert and requires exactly the
+reference's paths. It checks that a CREATE, MERGE, SET, DELETE, schema change
+and `write_cypher` are each refused, that the server exits 0 when stdin closes,
+and that the store is byte for byte unchanged.
+
+What it does not check is your agent's answer. An investigation in your own
+host is not a checked case note: only the case notes `investigate.py`
+records go through the claim checker. The server gives an agent the evidence,
+not the checker, and not this repository's ground rules.
+
 ## Where the data lives
 
 | Path | What |
@@ -216,6 +278,7 @@ the model runs in your region itself.
 | `runs/recorded/` | Recorded agent runs: transcript, submitted case note, verdicts, score, rendered `case_note.md` |
 | `runs/superseded/` | Runs recorded with an earlier prompt revision, kept and still verified |
 | `runs/shakedown/` | Live runs that checked the harness before recording; part of no result, still verified |
+| `.mcp.json`, `scripts/serve-mcp.sh` | The MCP host configuration, and the launcher it starts: Relate's MCP server, read-only |
 
 ## The pipeline
 
@@ -277,6 +340,15 @@ result over a limit says it was truncated. Every recorded run so far went
 through Amazon Bedrock (the global inference profile, from ap-south-1). A
 recorded run keeps the provider and the region, never the account.
 
+The graph arm reaches the store through the Python library, unless
+`investigate.py --backend mcp` sends its queries to Relate's MCP server, through
+`scripts/serve-mcp.sh` and the MCP Python SDK. The model gets the same tools,
+prompt and limits either way. The server has no per-call timeout and no row
+cap, so the client applies both. It stops the server and starts it again when a
+query passes its 30 seconds, and it counts every row before keeping 200. A run
+records which backend it used, and for MCP the transport, server, protocol and
+client versions.
+
 Each run is labelled with the prompt revision that made it. The checker's
 rules have not changed across revisions; the agent's wording and guidance have.
 
@@ -285,7 +357,7 @@ rules have not changed across revisions; the agent's wording and guidance have.
 | r1 | b5f9799 | the case note submitted through a tool | `runs/shakedown/small-graph-r1` |
 | r2 | d9a9d16 | path accounts defined exactly | `runs/superseded/small-*-r2` |
 | r3 | 27f96d0 | path end accounts defined exactly | `runs/recorded/small-*-r3`, `runs/shakedown/large-*-r3` |
-| r4 | 9caefc0 | onward links described as timing; both arms given equivalent traversal guidance | `runs/recorded/small-case-note-r4`, `runs/recorded/large-comparison-r4` |
+| r4 | 9caefc0 | onward links described as timing; both arms given equivalent traversal guidance | `runs/recorded/small-case-note-r4`, `runs/recorded/large-comparison-r4`, and through MCP `runs/recorded/large-case-note-r4-mcp` |
 
 The r1 shakedown counted an alert's senders among its path accounts, a fair
 reading of wording that did not say whether senders count. In the r2 set, five
@@ -297,6 +369,40 @@ recorded, including wording such as "comes to rest" that r4 replaced.
 
 `verify.py` checks every claim of every recorded, superseded and shakedown run
 again, and fails if a verdict or a recorded score differs.
+
+### One investigation through Relate's MCP server (r4)
+
+One investigation of the large case sent its queries to Relate's MCP server
+instead of the library. It ran on 14 November 2026 with `investigate.py
+--provider bedrock --case large --backend mcp --record
+large-case-note-r4-mcp`, and is in
+[`runs/recorded/large-case-note-r4-mcp/`](runs/recorded/large-case-note-r4-mcp/case_note.md).
+Its `meta.json` records the transport (stdio), the launcher, the server
+(`relate-mcp 1.0.1`), the protocol (2025-11-25) and the client (`mcp 2.3.0`).
+Its prompt is r4's, byte for byte: its hashes equal those of the r4
+comparison's graph runs.
+
+- **Checked:** completed, correctness 1.00. All 74 claims are supported and
+  cover all 19 required facts, and all 112 cited ids resolve. The note has 13
+  findings, 4 hypotheses and 4 unresolved questions.
+- **How it queried:** 16 queries in 8 model requests. Two were path queries,
+  each a variable-length pattern over every alert at once. No result was
+  truncated, no query was stopped, and the server started once.
+- **One query refused, where the library would have run it:** a read built
+  from `CALL { }` subqueries. Relate's MCP server 1.0.1 answers even a single
+  `CALL { MATCH ... RETURN count(*) }` read with "Only MATCH queries are allowed
+  for read-query". The library runs the same statement. The agent counted with
+  four separate queries instead.
+- **Slow, for a reason not recorded:** 118,239 input tokens, cache included,
+  and 15,092 output tokens, about the model work of the r4 graph runs. Its wall
+  time was 1,990 seconds, against at most 183 for every earlier recorded run.
+  The 16 queries took 0.28 seconds in all, so the rest was spent waiting on
+  the model. The extra is close to the 1,800-second request timeout, which
+  fits one request that stalled and was retried by the SDK. The harness does
+  not time each request, so that is not established.
+
+It is one run, kept apart from the comparison below. It shows the MCP backend
+working end to end, not that the transport leaves results unchanged.
 
 ## Comparison: table-based or Relate-based investigation
 
@@ -429,7 +535,7 @@ claims, all rejected; two are again the arrival-order answers.
 
 ## What ran
 
-On macOS 26.3.1, arm64, on 13 November 2026:
+On macOS 26.3.1, arm64, on 13 November 2026, and on 14 November where stated:
 
 - `./rebuild.sh` built `store/case.rl`, and `./rebuild.sh large` built
   `store/large.rl`, from `ghcr.io/orhaugh/clink-runtime:sha-c134524d8674`,
@@ -441,14 +547,26 @@ On macOS 26.3.1, arm64, on 13 November 2026:
 - `investigate.py --provider bedrock --smoke`, for each case: one request
   through Bedrock from ap-south-1, accepted and answered by `claude-opus-5-5`.
 - The recorded, superseded and shakedown runs listed under "Agent runs and
-  prompt revisions", all through Bedrock.
-- `verify.py`: 57 of 57 checks passed. For each dataset: 9 on the store, 5 on
-  the checker (its answer key and four planted claims) and 1 on the tables.
-  Then every recorded, superseded and shakedown run, and each comparison's
-  summary.
-- `python -m unittest`: 18 tests passed.
+  prompt revisions", all through Bedrock. The one through MCP ran on 14
+  November.
+- On 14 November, for MCP: `scripts/fetch-relate-cli.sh` installed relate
+  1.0.1 (`relate-darwin-arm64`). Its sha256 matches the release's
+  `SHA256SUMS`, whose SSH signature verified against the key in Relate's
+  `install.sh`, the same key relatedb.ai publishes. `mcp_check.py` passed 20
+  of 20 checks on both datasets in about six seconds. In the checkout, Claude
+  Code 2.1.325 listed the two `.mcp.json` servers as pending approval. From a
+  throwaway configuration with the commands `scripts/serve-mcp.sh --config`
+  prints, it reported both connected.
+- `verify.py` on 14 November: 58 of 58 checks passed. For each dataset: 9 on
+  the store, 5 on the checker (its answer key and four planted claims) and 1
+  on the tables. Then every recorded, superseded and shakedown run, and each
+  comparison's summary.
+- `python -m unittest` on 14 November: 24 tests passed. Six of them test the
+  MCP backend, and they are skipped without the relate command line or the
+  MCP client.
 - Python 3.12.3, `relate-db` 1.0.1, `anthropic` 2.8.0, boto3 and botocore
-  1.44.2, installed with `--require-hashes` from `requirements-bedrock.txt`.
+  1.44.2 and `mcp` 2.3.0, installed with `--require-hashes` from
+  `requirements-bedrock.txt` and `requirements-mcp.txt`.
 - A fresh clone, set up exactly as in "Setup and run", with Python 3.11.9 and
   `requirements.txt` only. The large store and tables unpacked from their
   gzipped copies on first use. `verify.py` passed 57 of 57 in under ten
@@ -468,8 +586,14 @@ passed the spike's nine store checks.
   tested differences.
 - **The Claude API path:** the recorded runs went through Amazon Bedrock. The
   Claude API path is tested only with a scripted stand-in client.
-- The `relate` command line and Relate's MCP server were not run. The stores
-  were reopened through the Python library only.
+- **Where MCP was tried:** Relate's MCP server ran over stdio on macOS arm64
+  only. Claude Code was checked connecting to it with `claude mcp list`, from
+  a throwaway configuration. Claude Desktop, Cursor and the other hosts were
+  not tried, and MCP over HTTP was not used. `scripts/serve-mcp.sh` needs a
+  POSIX shell, so on Windows it runs only under WSL.
+- **The MCP backend ran once:** one recorded investigation, which is not a
+  comparison with the library backend. It shows that the backend works end to
+  end, not that the transport leaves results unchanged.
 - The pipeline has run only in Docker on a Mac: never on a Linux host or an
   x86_64 machine.
 - clink's Relate connector is in no clink release. The image is a build of
@@ -489,8 +613,12 @@ passed the spike's nine store checks.
 - **This repository** was started on 13 November 2026. Its first event
   generator, reference rules, store checks and pipeline come from a spike
   written on 12 and 13 November 2026, also during the contest period.
-- **Relate by Neo4j:** `relate-db` 1.0.1 from PyPI, and Relate's C library
-  1.0.1 inside clink's image.
+- **Relate by Neo4j:** `relate-db` 1.0.1 from PyPI, Relate's C library 1.0.1
+  inside clink's image, and, optionally, Relate's command line 1.0.1 for its
+  MCP server, downloaded from Relate's GitHub release by
+  `scripts/fetch-relate-cli.sh`.
+- **MCP Python SDK** 2.3.0 (`mcp`, optional, `requirements-mcp.txt`): the
+  client `mcp_check.py` and the investigator's MCP backend use.
 - **Third-party tools:** Docker, to run the clink image. The Anthropic Python
   SDK 2.8.0 and the model Claude Opus 5.5, for the agent, reached through
   Amazon Bedrock for the recorded runs (boto3 and botocore 1.44.2 for its
