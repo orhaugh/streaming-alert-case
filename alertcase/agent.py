@@ -12,6 +12,11 @@ response, tool call and token is recorded as it happens. The model is reached
 either through the Claude API (provider "anthropic") or through Amazon Bedrock
 (provider "bedrock"), with the same request in both cases apart from the
 server-side refusal fallback, which only the Claude API offers.
+
+The graph arm reaches the store through one of two backends. "embedded", the
+default, opens it with the Python library in a worker process; "mcp" asks
+Relate's own MCP server (scripts/serve-mcp.sh, over stdio) through the MCP Python SDK.
+The model sees the same tools, prompt and limits either way.
 """
 
 from __future__ import annotations
@@ -279,6 +284,45 @@ class GraphQueries:
                     pass
 
 
+BACKENDS = ("embedded", "mcp")  # how the graph arm reaches the store
+
+
+class McpQueries:
+    """Cypher on the store through Relate's own MCP server, started by
+    scripts/serve-mcp.sh over stdio, read-only, and called through the MCP Python SDK
+    (requirements-mcp.txt). The server has no per-call timeout and no row cap,
+    so the limits GraphQueries applies are applied here: a call that runs
+    longer than QUERY_SECONDS stops the server, which is started again, and
+    every row the server returns is counted before the first ROW_LIMIT are
+    kept."""
+
+    def __init__(self, case: str) -> None:
+        from .mcp_store import McpStore
+        self.store = McpStore(case)
+
+    def __call__(self, query: str) -> tuple[bool, str]:
+        from .mcp_store import McpError, Stopped
+        try:
+            answer = self.store.call("read_cypher", {"statement": query, "parameters": {}}, timeout=QUERY_SECONDS)
+        except Stopped:
+            return False, TOO_LONG
+        except McpError as error:
+            return False, f"error: {error}"
+        if answer.is_error:
+            return False, f"error: {answer.text.removeprefix('Error: ')}"
+        envelope = json.loads(answer.text)
+        if envelope.get("error"):
+            return False, f"error: {envelope['error']}"
+        rows = envelope.get("rows") or []
+        return True, _bounded(rows, len(rows))
+
+    def describe(self) -> dict:
+        return {"name": "mcp", **self.store.describe()}
+
+    def close(self) -> None:
+        self.store.close()
+
+
 class TableQueries:
     """SQL on the tables. A query that runs longer than QUERY_SECONDS is
     interrupted through SQLite's progress handler."""
@@ -374,13 +418,21 @@ def smoke(arm: str, provider: str, case: str = "small", client: Any = None) -> d
 
 
 def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "small",
-        log: Callable[[str], None] = print) -> RunResult:
+        log: Callable[[str], None] = print, backend: str = "embedded") -> RunResult:
     """One investigation of one dataset. client is the provider's SDK client;
-    tests pass a stand-in. The evidence is opened before the clock starts."""
+    tests pass a stand-in. backend "mcp" sends the graph arm's queries to
+    Relate's MCP server instead of the library. The evidence is opened before
+    the clock starts."""
+    if backend not in BACKENDS or (backend == "mcp" and arm != "graph"):
+        raise ValueError(f"backend {backend!r} is not available to the {arm} arm")
     client = client or make_client(provider)
     dataset = CASES[case]
     dataset.unpack()
-    execute = GraphQueries(dataset.store) if arm == "graph" else TableQueries(dataset.tables)
+    if backend == "mcp":
+        execute = McpQueries(case)
+    else:
+        execute = GraphQueries(dataset.store) if arm == "graph" else TableQueries(dataset.tables)
+    reached = {"name": "embedded"}
     system, tools = system_prompt(arm, case), tools_for(arm)
     messages: list[dict] = [{"role": "user", "content": TASK}]
     transcript: list[dict] = []
@@ -475,12 +527,15 @@ def run(arm: str, client: Any = None, provider: str = "anthropic", case: str = "
         transcript.append({"error": redact(str(error))})
         log(f"  provider error: {redact(str(error))}")
     finally:
+        if backend == "mcp":
+            reached = execute.describe()
         execute.close()
 
     evidence = dataset.store if arm == "graph" else dataset.tables
     meta = {
         "case": case,
         "arm": arm,
+        "backend": reached,
         "status": status,
         "stop_reason": stop_reason,
         "provider": provider,

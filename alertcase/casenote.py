@@ -17,10 +17,18 @@ def _claim_text(claim: dict) -> str:
     return ", ".join(f"{k}={json.dumps(v)}" for k, v in fields.items())
 
 
+def arm_text(meta: dict) -> str:
+    """The arm, and how it reached the store when that was Relate's MCP server."""
+    backend = meta.get("backend") or {}
+    if backend.get("name") != "mcp":
+        return f"{meta['arm']} arm"
+    return f"{meta['arm']} arm through Relate's MCP server ({backend['server']}, {backend['transport']})"
+
+
 def render(output: dict | None, verdicts: list[dict], meta: dict, score: dict, title: str) -> str:
     lines = [f"# {title}", ""]
     lines.append(f"Agent output, {'recorded' if meta.get('recorded') else 'live'} run of {meta['started']}: "
-                 f"{meta['arm']} arm, model {', '.join(meta['models_served']) or meta['model_requested']} "
+                 f"{arm_text(meta)}, model {', '.join(meta['models_served']) or meta['model_requested']} "
                  f"(requested {meta['model_requested']}, effort {meta['effort_setting']}), status {meta['status']}.")
     lines.append("")
     lines.append("Scope: one bounded replay of a synthetic event file, as processed by the run its evidence records. "

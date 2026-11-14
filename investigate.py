@@ -7,7 +7,9 @@ A live run writes to runs/live/<time>-<arm>/, which git ignores, and never
 touches the recorded runs. --record NAME writes runs/recorded/NAME/ instead,
 and refuses if it exists. Every run is checked and scored the same way.
 --smoke sends only a run's first request, to check the provider accepts it,
-and writes nothing.
+and writes nothing. --backend mcp sends the graph arm's queries to Relate's own
+MCP server (scripts/serve-mcp.sh) instead of the Python library; it needs the relate
+command line (scripts/fetch-relate-cli.sh) and requirements-mcp.txt.
 """
 
 from __future__ import annotations
@@ -32,9 +34,14 @@ def main() -> int:
                         help="small: the 55-transfer case (default); large: 50,000 transfers")
     parser.add_argument("--provider", choices=agent.PROVIDERS, default="anthropic",
                         help="anthropic: the Claude API (default); bedrock: Amazon Bedrock")
+    parser.add_argument("--backend", choices=agent.BACKENDS, default="embedded",
+                        help="embedded: the graph arm opens the store with relate-db (default); "
+                             "mcp: it asks Relate's MCP server, over stdio")
     parser.add_argument("--record", metavar="NAME", help="write runs/recorded/NAME instead of a live run directory")
     parser.add_argument("--smoke", action="store_true", help="send one request and report; write nothing")
     args = parser.parse_args()
+    if args.backend == "mcp" and args.arm != "graph":
+        parser.error("--backend mcp is for the graph arm")
 
     problem = agent.missing_credentials(args.provider)
     if problem:
@@ -51,7 +58,8 @@ def main() -> int:
     if args.record:
         directory = Path("runs/recorded") / args.record
     else:
-        directory = Path("runs/live") / f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{args.case}-{args.arm}"
+        directory = Path("runs/live") / (f"{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{args.case}-{args.arm}"
+                                         + ("-mcp" if args.backend == "mcp" else ""))
     if directory.exists():
         raise SystemExit(f"refused     {directory} exists")
     case = CASES[args.case]
@@ -59,9 +67,9 @@ def main() -> int:
     events = facts.from_events(case.events)
     with Graph(case.store) as graph:
         graph_facts = facts.from_graph(graph)
-    print(f"{'recorded' if args.record else 'live'} run, {args.case} case, {args.arm} arm, {args.provider}, "
-          f"model {agent.model_for(args.provider)}, effort {agent.EFFORT}")
-    result = agent.run(args.arm, provider=args.provider, case=args.case)
+    print(f"{'recorded' if args.record else 'live'} run, {args.case} case, {args.arm} arm, {args.backend} backend, "
+          f"{args.provider}, model {agent.model_for(args.provider)}, effort {agent.EFFORT}")
+    result = agent.run(args.arm, provider=args.provider, case=args.case, backend=args.backend)
     scored = record(result, directory, recorded=bool(args.record), events=events, graph=graph_facts,
                     title=f"Case note: fan-in alerts in a bounded replay ({args.case} case)")
     print(f"{result.status}: correctness {scored['correctness']:.2f}, {scored['supported']} of {scored['claims']} "

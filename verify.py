@@ -28,6 +28,7 @@ from pathlib import Path
 
 from alertcase import answers, facts, tables
 from alertcase.cases import CASES, Case
+from alertcase.casenote import arm_text
 from alertcase.claims import check_claims, flatten_claims
 from alertcase.comparison import summarise
 from alertcase.graph import Graph
@@ -123,7 +124,7 @@ def check_runs(root: Path, title: str, sources: dict, report: Report) -> None:
         rescored = score(output, events, graph_facts, meta["effort"])
         same = verdicts(again) == verdicts(recorded_check) and agrees(recorded_score, rescored)
         report.record(name, same,
-                      f"{case} case, {meta['arm']} arm, {meta['status']}: correctness {rescored['correctness']:.2f}, "
+                      f"{case} case, {arm_text(meta)}, {meta['status']}: correctness {rescored['correctness']:.2f}, "
                       f"{rescored['supported']} of {rescored['claims']} claims supported, reference validity "
                       f"{rescored['reference_validity']}; every verdict and recorded score equal"
                       if same else "the verdicts or scores differ from the ones recorded beside the run")
