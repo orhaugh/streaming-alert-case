@@ -228,7 +228,8 @@ checked against a pinned sha256), then check it:
   paths.
 
 `scripts/serve-mcp.sh` is what each configuration starts. It accepts only
-relate 1.0.1, unpacks the large store on first use, and serves a store only if
+relate 1.0.1, unpacks the large store on first use and whenever the shipped
+copy changes, and serves a store only if
 its Run record shows a completed replay. It then runs `relate serve --mcp stdio
 --database <store> --read-only`, with Relate's anonymous usage metrics turned
 off.
@@ -273,7 +274,7 @@ not the checker, and not this repository's ground rules.
 | `data/scenario.json` | The designed facts, read by the verifier only |
 | `tables/case.sqlite` | The same records as tables, for the comparison only |
 | `data/large/` | The large case: 50,000 transfers and its designed facts |
-| `store/large.rl.gz`, `tables/large.sqlite.gz` | The large case's store and tables, gzipped; unpacked byte for byte on first use |
+| `store/large.rl.gz`, `tables/large.sqlite.gz` | The large case's store and tables, gzipped; unpacked byte for byte on first use, and again whenever the shipped copy changes |
 | `claims/planted.json`, `claims/planted-large.json` | Deliberately unsupported claims the checker must reject |
 | `runs/recorded/` | Recorded agent runs: transcript, submitted case note, verdicts, score, rendered `case_note.md` |
 | `runs/superseded/` | Runs recorded with an earlier prompt revision, kept and still verified |
@@ -568,6 +569,16 @@ stated:
   earlier stores, row for row, except that the Run record names the new image.
   `verify.py` passed 58 of 58 against them, every recorded run included, and
   `python -m unittest` passed 29 of 29.
+- Also on 17 November, checked separately: the image tag `0.16.1` resolves to
+  that digest, and both its platform images carry the revision label of
+  v0.16.1's commit, 9da1f7c7. Read from both sets of stores, every fact the
+  checker uses is the same, and the Run record differs only in the image it
+  names. A scratch clone rebuilt both stores from the pinned image again:
+  clink exited 0, all records reconciled, and each case verified. A clone
+  made before the rebuild and then updated with `git pull` kept its old
+  unpacked large store and checked that. The large case's copies are now
+  unpacked again whenever the shipped copy changes. With that, `verify.py`
+  passed 58 of 58, `mcp_check.py` 20 of 20, and 35 tests passed.
 - `investigate.py --provider bedrock --smoke`, for each case: one request
   through Bedrock from ap-south-1, accepted and answered by `claude-opus-5-5`.
 - The recorded, superseded and shakedown runs listed under "Agent runs and

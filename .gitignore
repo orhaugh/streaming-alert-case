@@ -4,12 +4,17 @@ __pycache__/
 # A store clink is still writing, before publish_run.py checks it.
 *.building.rl
 # The large case ships its store and tables gzipped; these are the copies
-# unpacked from them on first use.
+# unpacked from them, the record of which gzipped copy each came from, and an
+# unpacking interrupted part way.
 /store/large.rl
 /tables/large.sqlite
+/store/*.unpacked-from
+/tables/*.unpacked-from
+/store/*.unpacking.*
+/tables/*.unpacking.*
 # What clink printed during the last rebuild.
 /build/
 # Live agent runs: optional, need a model API key, never overwrite recorded ones.
 /runs/live/
-# The relate command line, installed by scripts/fetch-relate-cli.sh for mcp/serve.sh.
+# The relate command line, installed by scripts/fetch-relate-cli.sh for scripts/serve-mcp.sh.
 /.relate/

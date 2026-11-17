@@ -140,6 +140,42 @@ class McpBackendTest(unittest.TestCase):
         self.assertEqual(len(started), 1)  # one server, for the MCP run, and it is gone
         self.assertFalse(any(map(process_exists, started)))
 
+    def test_the_launcher_replaces_a_stale_store_by_the_rule_the_library_uses(self) -> None:
+        import gzip
+
+        from alertcase.cases import Case
+
+        relate = os.environ.get("RELATE_BIN") or str(ROOT / ".relate/bin/relate")
+        root = Path(tempfile.mkdtemp())
+        try:
+            (root / "scripts").mkdir()
+            (root / "store").mkdir()
+            shutil.copy(ROOT / "scripts/serve-mcp.sh", root / "scripts/serve-mcp.sh")
+            packed = root / "store/large.rl.gz"
+            shutil.copy(ROOT / "store/large.rl.gz", packed)
+            store = root / "store/large.rl"
+            store.write_bytes(b"a store unpacked from an earlier gzipped copy")
+
+            def serve() -> subprocess.CompletedProcess:  # stdin closed: the server starts, then exits
+                return subprocess.run(["sh", str(root / "scripts/serve-mcp.sh"), "large"], stdin=subprocess.DEVNULL,
+                                      capture_output=True, text=True, timeout=120, env={**os.environ, "RELATE_BIN": relate})
+
+            served = serve()
+            self.assertEqual(served.returncode, 0, served.stderr)
+            with gzip.open(packed, "rb") as shipped:
+                self.assertEqual(store.read_bytes(), shipped.read())
+            digest = sha256(packed)
+            self.assertEqual(Case.source_record(store).read_text().strip(), digest)
+
+            unpacked = store.stat().st_ino
+            self.assertEqual(serve().returncode, 0)
+            library = Case("large", root / "e", root / "s", root / "p", store, root / "store/none.sqlite", root / "c",
+                           max_tokens=1, table_indexes=False)
+            library.unpack()
+            self.assertEqual(store.stat().st_ino, unpacked)  # current by both rules: left alone
+        finally:
+            shutil.rmtree(root)
+
     def test_the_process_check_sees_a_live_process_and_not_a_reaped_one(self) -> None:
         self.assertTrue(process_exists(os.getpid()))
         child = subprocess.Popen(["true"])

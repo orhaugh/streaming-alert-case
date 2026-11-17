@@ -15,7 +15,9 @@
 #     with: RELATE_BIN if set, else .relate/bin/relate (installed by
 #     scripts/fetch-relate-cli.sh), else relate on PATH;
 #   - the store is there; the large case's is unpacked from its gzipped copy
-#     on first use;
+#     on first use, and again whenever that copy changes, by the rule
+#     alertcase/cases.py states: <store>.unpacked-from holds the sha256 of the
+#     gzipped copy the store came from;
 #   - the store's Run record shows a completed bounded replay: every job
 #     completed, clink exited 0 and was not cancelled. scripts/publish_run.py
 #     publishes a store only after that; this checks the store being served.
@@ -74,12 +76,23 @@ version=$("${relate}" --version 2>/dev/null | sed -n '1s/^Relate v//p')
 [ "${version}" = "${PINNED}" ] ||
     fail "${relate} is relate ${version:-of unknown version}; this repository is tested with ${PINNED} (scripts/fetch-relate-cli.sh installs it)"
 
-if [ ! -f "${store}" ] && [ -f "${store}.gz" ]; then
-    partial="${store}.unpacking.$$"
-    trap 'rm -f "${partial}"' EXIT
-    gunzip -c "${store}.gz" >"${partial}"
-    mv "${partial}" "${store}"
-    trap - EXIT
+sha256() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | awk '{print $1}'
+    else
+        shasum -a 256 "$1" | awk '{print $1}'
+    fi
+}
+if [ -f "${store}.gz" ]; then
+    digest=$(sha256 "${store}.gz")
+    if [ ! -f "${store}" ] || [ "$(cat "${store}.unpacked-from" 2>/dev/null)" != "${digest}" ]; then
+        partial="${store}.unpacking.$$"
+        trap 'rm -f "${partial}"' EXIT
+        gunzip -c "${store}.gz" >"${partial}"
+        mv "${partial}" "${store}"
+        trap - EXIT
+        printf '%s\n' "${digest}" >"${store}.unpacked-from"
+    fi
 fi
 [ -f "${store}" ] || fail "no store at ${store}: run ./rebuild.sh ${1:-small}"
 
