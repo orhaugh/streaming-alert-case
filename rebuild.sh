@@ -8,14 +8,13 @@
 #   ./rebuild.sh          the small case: 55 transfers   (store/case.rl)
 #   ./rebuild.sh large    50,000 transfers              (store/large.rl, shipped gzipped)
 #
-# The clink is the runtime image built from clink's main branch at commit
-# c134524d (not a release), pinned by digest. It carries the Relate connector
-# for linux/amd64 and linux/arm64.
+# The clink is the runtime image of clink's release v0.16.1, pinned by digest.
+# It carries the Relate connector for linux/amd64 and linux/arm64.
 set -euo pipefail
 cd "$(dirname "$0")"
 
 CASE="${1:-small}"
-IMAGE="ghcr.io/orhaugh/clink-runtime:sha-c134524d8674@sha256:f19c890c747e8a6e097568e0003cd83c303599a4bfbb0095751045909124802f"
+IMAGE="ghcr.io/orhaugh/clink-runtime:0.16.1@sha256:d688ef7ddf6694532076bce7d12eb85a6d80ca4218385e44dfc3315657b52bf4"
 PY="${PYTHON:-.venv/bin/python}"
 case "$CASE" in
     small) EVENTS=data/events.ndjson PIPELINE=pipeline/case.sql STORE=store/case.rl ;;

@@ -546,15 +546,28 @@ claims, all rejected; two are again the arrival-order answers.
 
 ## What ran
 
-On macOS 26.3.1, arm64, on 13 November 2026, and on 14 November where stated:
+On macOS 26.3.1, arm64, on 13 November 2026, and on 14 and 17 November where
+stated:
 
 - `./rebuild.sh` built `store/case.rl`, and `./rebuild.sh large` built
   `store/large.rl`, from `ghcr.io/orhaugh/clink-runtime:sha-c134524d8674`,
   index digest
-  `sha256:f19c890c747e8a6e097568e0003cd83c303599a4bfbb0095751045909124802f`.
+  `sha256:f19c890c747e8a6e097568e0003cd83c303599a4bfbb0095751045909124802f`,
+  a build of clink's main branch at commit c134524d.
   They ran as linux/arm64, with Docker Desktop (engine 29.8.2) and no network.
   clink exited 0 both times: 55 of 55 and 50,000 of 50,000 records reconciled.
-  For the large case clink took about six seconds and publishing 28.
+  For the large case clink took about six seconds and publishing 28. The
+  recorded agent runs read stores built from this image, so their transcripts
+  name it.
+- On 17 November both stores were rebuilt the same way from clink's release
+  v0.16.1, `ghcr.io/orhaugh/clink-runtime:0.16.1`, index digest
+  `sha256:d688ef7ddf6694532076bce7d12eb85a6d80ca4218385e44dfc3315657b52bf4`,
+  which `rebuild.sh` now pins. These are the stores the repository ships.
+  clink exited 0 both times, and 55 of 55 and 50,000 of 50,000 records
+  reconciled. Every table exported from them equals the one exported from the
+  earlier stores, row for row, except that the Run record names the new image.
+  `verify.py` passed 58 of 58 against them, every recorded run included, and
+  `python -m unittest` passed 29 of 29.
 - `investigate.py --provider bedrock --smoke`, for each case: one request
   through Bedrock from ap-south-1, accepted and answered by `claude-opus-5-5`.
 - The recorded, superseded and shakedown runs listed under "Agent runs and
@@ -625,20 +638,25 @@ passed the spike's nine store checks.
   run was made to try it.
 - The pipeline has run only in Docker on a Mac: never on a Linux host or an
   x86_64 machine.
-- clink's Relate connector is in no clink release. The image is a build of
-  clink's main branch.
+- The recorded agent runs read stores built by a main-branch build of clink,
+  before the connector was in a release, so their transcripts name that image.
+  The shipped stores were rebuilt from v0.16.1 with the same content, and the
+  runs were not recorded again.
 - Rebuilt stores are not byte-identical to each other. Every check compares
   content.
 
 ## Reused work, tools and disclosures
 
 - **clink** is the author's own stream engine, a project started before this
-  contest (its git history begins in June 2026; latest release v0.15.0, 3
-  November 2026). It is not in this repository. Its Relate connector,
-  `connector='relate'`, was written during the contest period. It landed in
-  clink's repository on 13 November 2026 in commits b862cd62, b5f0f2c5,
-  b2e73a69, 85bdd6a6 and c134524d, and was published in the runtime image this
-  repository pins.
+  contest (its git history begins in June 2026; its last release before the
+  contest was v0.15.0, 3 November 2026). It is not in this repository. Its
+  Relate connector, `connector='relate'`, was written during the contest
+  period. It landed in clink's repository on 13 November 2026 in commits
+  b862cd62, b5f0f2c5, b2e73a69, 85bdd6a6 and c134524d, and was first published
+  in a runtime image built from c134524d. It shipped in clink's releases
+  v0.16.0 (15 November) and v0.16.1 (16 November) with one fix, 4fe76f37 (15
+  November), so that on Linux a value Relate refuses carries Relate's own
+  reason. This repository pins v0.16.1.
 - **This repository** was started on 13 November 2026. Its first event
   generator, reference rules, store checks and pipeline come from a spike
   written on 12 and 13 November 2026, also during the contest period.
