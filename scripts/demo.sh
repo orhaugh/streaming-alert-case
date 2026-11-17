@@ -35,19 +35,19 @@ section() {  # a title, then the commands to show and run, one per argument
     fi
 }
 
-section "1. clink replays the events into Relate" \
+section "1. clink replays 55 transfers into a Relate database" \
     "./rebuild.sh | grep -E '^(reconciled|published)|checks passed'" \
     ".venv/bin/python explore.py --cypher \"MATCH (r:Run) RETURN r.jobs_completed AS jobs_completed, r.clink_exit_status AS clink_exit_status, r.cancelled AS cancelled, r.dataset_events AS events\""
 
-section "2. Two alerts, and the relationships that tell them apart" \
+section "2. Two alerts that look alike, and what tells them apart" \
     ".venv/bin/python explore.py | sed -n '/WHERE THE TWO ALERTS DIFFER/,/device shared/p'" \
     ".venv/bin/python explore.py --cypher \"MATCH p = (:Transfer {id: 'T0002'})-[:PASSED_ON*]->(t:Transfer) WHERE NOT (t)-[:PASSED_ON]->() RETURN [n IN nodes(p) | n.id] AS path\""
 
-section "3. The same file, read-only, through Relate's MCP server" \
+section "3. The same database, read-only, over MCP" \
     ".venv/bin/python mcp_check.py --case small | sed -n '/as .mcp.json starts it/,/store unchanged/p' | cut -c1-118"
 
-section "4. A case note: model output recorded on 13 November 2026, not generated now" \
+section "4. Recorded on 13 November 2026: an AI agent's case note" \
     "grep -E -A1 '^Agent output|^- \*\*(f5|h1|u1)\*\*' runs/recorded/small-case-note-r4/case_note.md | grep -v -E '^(--)?$' | cut -c1-118"
 
-section "5. A claim the checker rejects" \
+section "5. Wrong claims the checker rejects" \
     ".venv/bin/python verify.py --case small | grep -E 'planted P[23]|checks passed' | cut -c1-118"
