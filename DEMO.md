@@ -24,20 +24,20 @@ of order. Three SQL jobs derive alerts and onward links by event time, and
 write them through clink's native Relate connector into one file. It is
 published only because every job completed and clink exited 0."
 
-## 2. Two alerts, and the relationships that tell them apart (0:20 to 0:45)
+## 2. Two alerts, and the relationships that tell them apart (0:20 to 0:47)
 
 ```bash
 .venv/bin/python explore.py | sed -n '/WHERE THE TWO ALERTS DIFFER/,/device shared/p'
 .venv/bin/python explore.py --cypher "MATCH p = (:Transfer {id: 'T0002'})-[:PASSED_ON*]->(t:Transfer) WHERE NOT (t)-[:PASSED_ON]->() RETURN [n IN nodes(p) | n.id] AS path"
 ```
 
-Say: "Two fan-in alerts fire on the same rule: six senders into one account
-inside an hour. As alert rows they differ only in their totals. In Relate their
-relationships differ: candidate paths of three onward links against one, and
-device D-568 shared along one alert's paths. An onward link is timing, a debit
-soon after a credit, not proof that funds moved."
+Say: "Two fan-in alerts, on accounts A-9278 and A-9895, fire on the same rule:
+six senders inside an hour. As alert rows they differ only in their totals. In
+Relate their relationships differ: candidate paths of three onward links
+against one, and device D-568 shared along one alert's paths. An onward link
+is timing, a debit soon after a credit, not proof that funds moved."
 
-## 3. The same file, read-only, through Relate's MCP server (0:45 to 1:00)
+## 3. The same file, read-only, through Relate's MCP server (0:47 to 1:02)
 
 ```bash
 .venv/bin/python mcp_check.py --case small | sed -n '/as .mcp.json starts it/,/store unchanged/p' | cut -c1-118
@@ -47,7 +47,7 @@ Say: "Any MCP host can open the same file through Relate's own MCP server,
 read-only. This check talks to it as an agent host does: two read-only tools,
 every path equal to the reference, writes refused, the store unchanged."
 
-## 4. A case note, recorded (1:00 to 1:25)
+## 4. A case note, recorded (1:02 to 1:25)
 
 ```bash
 grep -E -A1 '^Agent output|^- \*\*(f5|h1|u1)\*\*' runs/recorded/small-case-note-r4/case_note.md | grep -v -E '^(--)?$' | cut -c1-118
