@@ -106,7 +106,7 @@ first: `.venv/bin/pip install --require-hashes -r requirements-mcp.txt` and
 
 ## Built with
 
-clink 0.16.1 (its runtime image, pinned by digest), Relate by Neo4j (`relate-db` 1.0.1,
+clink 0.16.2 (its runtime image, pinned by digest), Relate by Neo4j (`relate-db` 1.0.1,
 its C library 1.0.1, and its command line and MCP server 1.0.1), Python,
 SQLite, Docker, the MCP Python SDK, the Anthropic Python SDK, Claude Opus 5.5
 through Amazon Bedrock.
@@ -122,7 +122,7 @@ through Amazon Bedrock.
 - Reused work: clink is the author's own stream engine, started before the
   contest (June 2026) and not in this repository. Its Relate connector was
   written during the contest period, on 13 November 2026, and first released
-  in clink v0.16.0 (15 November); this repository pins v0.16.1. This
+  in clink v0.16.0 (15 November); this repository pins v0.16.2. This
   repository was started on 13 November 2026, from a spike written on 12 and
   13 November.
 

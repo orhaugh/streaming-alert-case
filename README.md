@@ -547,8 +547,8 @@ claims, all rejected; two are again the arrival-order answers.
 
 ## What ran
 
-On macOS 26.3.1, arm64, on 13 November 2026, and on 14 and 17 November where
-stated:
+On macOS 26.3.1, arm64, on 13 November 2026, and on 14, 17 and 18 November
+where stated:
 
 - `./rebuild.sh` built `store/case.rl`, and `./rebuild.sh large` built
   `store/large.rl`, from `ghcr.io/orhaugh/clink-runtime:sha-c134524d8674`,
@@ -562,8 +562,7 @@ stated:
   name it.
 - On 17 November both stores were rebuilt the same way from clink's release
   v0.16.1, `ghcr.io/orhaugh/clink-runtime:0.16.1`, index digest
-  `sha256:d688ef7ddf6694532076bce7d12eb85a6d80ca4218385e44dfc3315657b52bf4`,
-  which `rebuild.sh` now pins. These are the stores the repository ships.
+  `sha256:d688ef7ddf6694532076bce7d12eb85a6d80ca4218385e44dfc3315657b52bf4`.
   clink exited 0 both times, and 55 of 55 and 50,000 of 50,000 records
   reconciled. Every table exported from them equals the one exported from the
   earlier stores, row for row, except that the Run record names the new image.
@@ -579,6 +578,19 @@ stated:
   unpacked large store and checked that. The large case's copies are now
   unpacked again whenever the shipped copy changes. With that, `verify.py`
   passed 58 of 58, `mcp_check.py` 20 of 20, and 35 tests passed.
+- On 18 November both stores were rebuilt again, from clink's release v0.16.2,
+  `ghcr.io/orhaugh/clink-runtime:0.16.2`, index digest
+  `sha256:da007cf3f288497a05447ae6d9d65914d0a31471b929cc38af02e297971b1fd8`,
+  which `rebuild.sh` now pins. These are the stores the repository ships.
+  v0.16.2 fixes a failure this repository's rebuild ran into: a sink applying
+  its schema statements while another sink on the same store committed could
+  meet a write conflict, and its job then failed, so `rebuild.sh` stopped with
+  clink's exit status 1. Run a hundred times, four at a time, the small case's
+  pipeline failed twice on v0.16.1 and never on v0.16.2. clink exited 0 for
+  both stores, 55 of 55 and 50,000 of 50,000 records reconciled, and every
+  exported table equals the previous one row for row, except that the Run
+  record names the new image. `verify.py` passed 58 of 58, `mcp_check.py` 20
+  of 20, and 35 tests passed.
 - `investigate.py --provider bedrock --smoke`, for each case: one request
   through Bedrock from ap-south-1, accepted and answered by `claude-opus-5-5`.
 - The recorded, superseded and shakedown runs listed under "Agent runs and
@@ -651,7 +663,7 @@ passed the spike's nine store checks.
   x86_64 machine.
 - The recorded agent runs read stores built by a main-branch build of clink,
   before the connector was in a release, so their transcripts name that image.
-  The shipped stores were rebuilt from v0.16.1 with the same content, and the
+  The shipped stores were rebuilt from v0.16.2 with the same content, and the
   runs were not recorded again.
 - Rebuilt stores are not byte-identical to each other. Every check compares
   content.
@@ -665,9 +677,11 @@ passed the spike's nine store checks.
   period. It landed in clink's repository on 13 November 2026 in commits
   b862cd62, b5f0f2c5, b2e73a69, 85bdd6a6 and c134524d, and was first published
   in a runtime image built from c134524d. It shipped in clink's releases
-  v0.16.0 (15 November) and v0.16.1 (16 November) with one fix, 4fe76f37 (15
-  November), so that on Linux a value Relate refuses carries Relate's own
-  reason. This repository pins v0.16.1.
+  v0.16.0 (15 November), v0.16.1 (16 November) and v0.16.2 (17 November) with
+  two fixes: 4fe76f37 (15 November), so that on Linux a value Relate refuses
+  carries Relate's own reason, and c36742c7 (17 November), so that a sink
+  retries a schema statement that meets a write conflict as it opens, as it
+  already retried a batch. This repository pins v0.16.2.
 - **This repository** was started on 13 November 2026. Its first event
   generator, reference rules, store checks and pipeline come from a spike
   written on 12 and 13 November 2026, also during the contest period.

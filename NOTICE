@@ -2,10 +2,9 @@ streaming-alert-case
 Copyright 2026 Ross Haugh
 
 This project runs clink, the author's own stream engine
-(https://github.com/orhaugh/clink, Apache License 2.0), from its runtime image
-ghcr.io/orhaugh/clink-runtime, pinned by digest in rebuild.sh. clink is not
-included in this repository. The image is built from clink's main branch at
-commit c134524d, which is not a release.
+(https://github.com/orhaugh/clink, Apache License 2.0), from the runtime image
+of its release v0.16.2, ghcr.io/orhaugh/clink-runtime, pinned by digest in
+rebuild.sh. clink is not included in this repository.
 
 It uses Relate by Neo4j (https://github.com/relatedb/relate, Apache License
 2.0): the relate-db Python package, installed from PyPI, and, inside clink's
