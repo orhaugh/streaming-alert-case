@@ -7,6 +7,10 @@
     "streaming-alert-case-large": {
       "command": "sh",
       "args": ["scripts/serve-mcp.sh", "large"]
+    },
+    "streaming-alert-case-revision": {
+      "command": "sh",
+      "args": ["scripts/serve-mcp.sh", "revision"]
     }
   }
 }

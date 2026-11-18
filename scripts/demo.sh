@@ -5,6 +5,9 @@
 #
 #   ./scripts/demo.sh              wait for Enter before each section
 #   ./scripts/demo.sh --rehearse   no waiting; print each section's time
+#   ./scripts/demo.sh --revision   the optional sixth section alone, outside the
+#                                  two-minute cut: new evidence, the affected
+#                                  finding, a verified amendment
 #
 # Run it in a fresh clone set up as the README describes, with Docker and the
 # MCP extras (scripts/fetch-relate-cli.sh, requirements-mcp.txt). Section 1
@@ -13,7 +16,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REHEARSE=0
+REVISION=0
 [ "${1:-}" = "--rehearse" ] && REHEARSE=1
+[ "${1:-}" = "--revision" ] && REVISION=1
 
 clock() { .venv/bin/python -c 'import time; print(time.time())'; }
 
@@ -34,6 +39,14 @@ section() {  # a title, then the commands to show and run, one per argument
             "${title}" "${began}"
     fi
 }
+
+if [ "${REVISION}" -eq 1 ]; then
+    # revise.py publishes into build/revision/, which is not tracked: nothing to put back afterwards.
+    section "6. Optional: new evidence, the affected finding, a verified amendment" \
+        ".venv/bin/python revise.py | grep -v -E '^(Bounded replays|  Case note|  Ledger)' | cut -c1-118" \
+        ".venv/bin/python explore.py --revision r2 --cypher \"MATCH (:Revision {id: 'r2'})-[:ADDED]->(t:Transfer)<-[:SENT]-(a:Account)<-[s:SCOPE {revision: 'r1', role: 'debit'}]-(c:Claim) WHERE s.start_ms <= t.ts AND t.ts <= s.end_ms RETURN c.id AS claim, c.type AS type, t.id AS new_transfer, a.id AS account\""
+    exit 0
+fi
 
 section "1. clink replays 55 transfers into a Relate database" \
     "./rebuild.sh | grep -E '^(reconciled|published)|checks passed'" \

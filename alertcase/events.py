@@ -9,12 +9,13 @@ from pathlib import Path
 FIELDS = {"transfer_id": str, "src": str, "dst": str, "amount_minor": int, "ts": int, "device": str}
 
 
-def load_events(path: str | Path) -> list[dict]:
+def load_events(path: str | Path, unique: bool = True) -> list[dict]:
     """Every line must be a JSON object with exactly the six typed fields.
 
     Returns the records in file order, which is arrival order. Anything else
     in the file is an error: this is the record of what the dataset contains,
-    so it must not skip or coerce.
+    so it must not skip or coerce. unique=False reads a delivery that may
+    repeat a transfer (an arrival, revise.py), so its repeats can be judged.
     """
     events: list[dict] = []
     for number, line in enumerate(Path(path).read_text().splitlines(), start=1):
@@ -31,7 +32,7 @@ def load_events(path: str | Path) -> list[dict]:
             raise ValueError(f"{path}:{number}: a transfer from an account to itself")
         events.append(record)
     ids = [e["transfer_id"] for e in events]
-    if len(set(ids)) != len(ids):
+    if unique and len(set(ids)) != len(ids):
         raise ValueError(f"{path}: transfer_id is not unique")
     return events
 

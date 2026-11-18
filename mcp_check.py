@@ -25,6 +25,11 @@ each dataset, through the MCP Python SDK, against the command .mcp.json gives:
   7. a clean shutdown: with stdin closed the server exits 0, having written
      nothing but JSON-RPC to stdout, and no server process is left behind;
   8. the store unchanged: the same bytes, and no file added beside it.
+Then the evolving investigation's published revision (revise.py), through the
+same server: the claims its new transfers selected, read from the dependency
+windows in Relate, and its amendment and the validation history of each claim
+the amendment names, all equal to the ledger's records; a write refused; the
+store unchanged.
 
 What it does not check is what an agent concludes from these answers. An
 investigation in your own agent host is not a checked case note: only the
@@ -43,13 +48,16 @@ import tempfile
 from pathlib import Path
 
 from alertcase import facts
+from alertcase import revision as rv
+from alertcase import revision_store as rs
 from alertcase.agent import GRAPH_DESCRIPTION
 from alertcase.cases import CASES, Case
 from alertcase.mcp_store import ROOT, SERVE, McpGraph, McpStore, client_missing, host_command, process_exists
 from verify import Report
 
 PINNED = "relate-mcp 1.0.1"
-HOST_NAMES = {"small": "streaming-alert-case", "large": "streaming-alert-case-large"}
+HOST_NAMES = {"small": "streaming-alert-case", "large": "streaming-alert-case-large",
+              "revision": "streaming-alert-case-revision"}
 WRITES = {
     "CREATE": "CREATE (:Account {id: 'A-0000'})",
     "MERGE": "MERGE (:Device {id: 'D-000'})",
@@ -98,8 +106,8 @@ def check_hosts(report: Report) -> dict[str, list[str]]:
     servers = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]
     project = all([servers[HOST_NAMES[c]]["command"], *servers[HOST_NAMES[c]]["args"]] == host_command(c)
                   for c in HOST_NAMES)
-    report.record(".mcp.json", project, "starts `sh scripts/serve-mcp.sh small|large` from the repository's root, "
-                  "where Claude Code starts a project's servers")
+    report.record(".mcp.json", project, "starts `sh scripts/serve-mcp.sh small|large|revision` from the repository's "
+                  "root, where Claude Code starts a project's servers")
     with tempfile.TemporaryDirectory() as elsewhere:
         printed = subprocess.run(["/bin/sh", str(SERVE), "--config"], cwd=elsewhere, capture_output=True,
                                  text=True, check=True).stdout
@@ -211,9 +219,61 @@ def check_case(case: Case, absolute: list[str], report: Report) -> None:
                   if after == before else "the store or its directory changed")
 
 
+def check_revision(absolute: list[str], report: Report) -> None:
+    """The published revision of the evolving investigation, over MCP."""
+    root = ROOT / "revision"
+    ledger = rv.Ledger(root / "ledger.jsonl")
+    published = ledger.published()
+    store = root / published["store"]
+    before = fingerprint(store)
+    selection = next(x for x in ledger.of("selection") if x["revision"] == published["revision"])
+    [amendment] = [a for a in ledger.of("amendment") if a["to"] == published["revision"]]
+    report.section(f"The evolving investigation, revision/{published['store']}, through the MCP Python SDK, "
+                   "from another directory with the --config command")
+    with tempfile.TemporaryDirectory() as elsewhere, McpStore("revision", command=absolute, cwd=Path(elsewhere)) as s:
+        server = f"{s.info.server_info.name} {s.info.server_info.version}"
+        tools = {t.name: t.annotations for t in s.tools}
+        read_only = all(a is not None and a.read_only_hint and not a.destructive_hint for a in tools.values())
+        refused = s.call("read_cypher", {"statement": WRITES["CREATE"]})
+        report.record("handshake and tools", server == PINNED and set(tools) == {"read_cypher", "get_schema"}
+                      and read_only and refused.is_error and "Only MATCH queries are allowed" in refused.text,
+                      f"{server}, started from another directory with the --config command; read_cypher and "
+                      "get_schema only, both read-only; a CREATE refused")
+
+        hits: dict[str, list[dict]] = {}
+        for query in (rs.SELECTED_BY_DEBIT, rs.SELECTED_BY_CREDIT):
+            for row in s.read(query, {"revision": published["revision"], "previous": selection["previous"]})["rows"]:
+                hits.setdefault(row.pop("claim"), []).append(row)
+        normal = lambda found: {(c, h["transfer"], h["role"], h["account"], h["start_ms"], h["end_ms"], h["via"])  # noqa: E731
+                                for c, rows in found.items() for h in rows}
+        report.record("dependencies over MCP", normal(hits) == normal(selection["selected"]) and bool(hits),
+                      f"the claims {published['revision']}'s new transfers fall into the dependency windows of: "
+                      f"{', '.join(sorted(hits, key=rv.claim_order))}, as the ledger records the selection")
+
+        links = {(r["link"], r["id"]) for r in s.read(
+            "MATCH (a:Amendment {id: $id})-[r]->(x) RETURN type(r) AS link, x.id AS id", {"id": amendment["id"]})["rows"]}
+        want = ({("FROM_REVISION", amendment["from"]), ("TO_REVISION", amendment["to"])}
+                | {("SUPERSEDES", x["finding"]) for x in amendment["superseded"]}
+                | {("REPLACEMENT", x["replacement"]) for x in amendment["superseded"]}
+                | {("UNCHANGED", u["finding"]) for u in amendment["unchanged"]}
+                | {("NEW_EVIDENCE", e["transfer_id"]) for e in amendment["new_events"]})
+        named = [c["claim"] for x in amendment["superseded"] for c in x["claims"]]
+        histories = {c: [(r["revision"], r["status"]) for r in s.read(
+            "MATCH (v:Validation)-[:OF]->(:Claim {id: $id}) RETURN v.revision AS revision, v.status AS status "
+            "ORDER BY revision", {"id": c})["rows"]] for c in named}
+        same = all(histories[c] == [(v["revision"], v["status"]) for v in ledger.history(c)] for c in named)
+        report.record("amendment over MCP", links == want and same,
+                      f"{amendment['id']}'s {len(want)} links (supersedes, replacement, unchanged, new evidence, "
+                      f"revisions) and the validation history of {', '.join(named)} equal the ledger's")
+    after = fingerprint(store)
+    report.record("store unchanged", after == before,
+                  f"sha256 {after[0][:16]}... before and after, and no file added beside it"
+                  if after == before else "the store or its directory changed")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--case", choices=["all", *sorted(CASES)], default="all")
+    parser.add_argument("--case", choices=["all", *sorted(CASES), "revision"], default="all")
     args = parser.parse_args()
     if client_missing():
         raise SystemExit(client_missing())
@@ -222,6 +282,8 @@ def main() -> int:
     absolute = check_hosts(report)
     for name in (sorted(CASES, key=lambda n: n != "small") if args.case == "all" else [args.case]):
         check_case(CASES[name], absolute[name], report)
+    if args.case in ("all", "revision"):
+        check_revision(absolute["revision"], report)
     passed = sum(report.results)
     print(f"\n{passed} of {len(report.results)} checks passed")
     return 0 if passed == len(report.results) else 1

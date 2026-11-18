@@ -141,6 +141,10 @@ Relate capabilities used:
 - **Variable-length traversal:** the candidate paths, where they end and the
   devices shared along them come from Cypher path queries
   (`alertcase/graph.py`).
+- **Claim dependencies, optional:** in the evolving investigation, each
+  revision's store also holds the claims, the windows each depends on and
+  every verdict so far, and one Cypher pattern finds the claims a new transfer
+  bears on. See "Evidence-driven revision of investigative findings".
 - **Relate's own MCP server, optional:** `relate serve --mcp stdio
   --read-only` serves the same file to any MCP host, so you can question the
   case from your own agent. The investigator can use it as its query backend
@@ -159,7 +163,7 @@ git clone https://github.com/orhaugh/streaming-alert-case.git && cd streaming-al
 python3 -m venv .venv
 .venv/bin/pip install --require-hashes -r requirements.txt
 
-.venv/bin/python verify.py          # both datasets, the checker and every recorded run; no model, no API key
+.venv/bin/python verify.py          # both datasets, the checker, every recorded run and revision/; no model, no API key
 .venv/bin/python explore.py         # the investigation, read from the store
 .venv/bin/python -m unittest        # the checker and the agent harness
 ```
@@ -179,6 +183,13 @@ succeeded, and then verified:
 ```bash
 ./rebuild.sh            # the case: 55 transfers
 ./rebuild.sh large      # 50,000 transfers
+```
+
+Optional, with Docker: a finding revised when new evidence arrives, with no
+model (see "Evidence-driven revision of investigative findings"):
+
+```bash
+.venv/bin/python revise.py
 ```
 
 Optional, with Claude API credentials (`ANTHROPIC_API_KEY`, or an `ant auth
@@ -221,8 +232,9 @@ checked against a pinned sha256), then check it:
 ```
 
 - **Claude Code:** run `claude` in the checkout. It reads `.mcp.json` and asks
-  you to approve two servers, `streaming-alert-case` (55 transfers) and
-  `streaming-alert-case-large` (50,000).
+  you to approve three servers, `streaming-alert-case` (55 transfers),
+  `streaming-alert-case-large` (50,000) and `streaming-alert-case-revision`
+  (the published revision of the evolving investigation).
 - **Claude Desktop, Cursor and other hosts:** `sh scripts/serve-mcp.sh
   --config` prints the configuration block with this checkout's absolute
   paths.
@@ -258,7 +270,9 @@ over MCP and requires it to equal the reference's, record for record. It runs
 the agent's worked path query for every alert and requires exactly the
 reference's paths. It checks that a CREATE, MERGE, SET, DELETE, schema change
 and `write_cypher` are each refused, that the server exits 0 when stdin closes,
-and that the store is byte for byte unchanged.
+and that the store is byte for byte unchanged. On the revision store it checks
+that the claims a new transfer selects, and the amendment, read over MCP,
+equal the ledger's.
 
 What it does not check is your agent's answer. An investigation in your own
 host is not a checked case note: only the case notes `investigate.py`
@@ -280,6 +294,8 @@ not the checker, and not this repository's ground rules.
 | `runs/superseded/` | Runs recorded with an earlier prompt revision, kept and still verified |
 | `runs/shakedown/` | Live runs that checked the harness before recording; part of no result, still verified |
 | `.mcp.json`, `scripts/serve-mcp.sh` | The MCP host configuration, and the launcher it starts: Relate's MCP server, read-only |
+| `pipeline/revision.sql`, `data/arrival.ndjson` | The evolving investigation's recomputation, and the transfer that arrives |
+| `revision/` | The evolving investigation as published: the ledger, each revision's store, the arrival as applied, the case note and the amendment |
 
 ## The pipeline
 
@@ -545,6 +561,212 @@ writes it into one Relate store in about six seconds. `verify.py` checks that
 store against the reference, an answer key of 19 claims, and four planted
 claims, all rejected; two are again the arrival-order answers.
 
+## Evidence-driven revision of investigative findings (optional)
+
+An optional demonstration beside the case, apart from its comparison and its
+recorded runs. It is a staged evolving investigation: two bounded replays,
+each an evidence revision, and a finding revised between them because new
+evidence arrived. It is not continuous streaming.
+
+```bash
+.venv/bin/python revise.py     # needs Docker; no model, no API key; publishes into build/revision/
+```
+
+It prints what the investigation said, what arrived and what that changed,
+and what it says now (abridged):
+
+```text
+BEFORE  r1: 55 transfers from data/events.ndjson. clink exited 0, 3 of 3 jobs; 55 of 55 records reconciled; derived
+        evidence equals the independent reference.
+  ...
+  F4  its paths: at most 1 onward link, ending at A-1415; no qualifying onward transfer from A-1415 at
+      14:50:00-15:20:00  [C6 C7: supported at r1]
+
+CHANGE  data/arrival.ndjson: 1 new transfer
+  T0056  A-1415 -> A-6630  130.00  15:01:00 UTC 10 November 2026  D-785
+  ...
+  New relationship, derived by clink: onward:T0041:T0056
+  Selected by the dependency query in Relate, and by the same rule over the ledger:
+    C6  T0056 is a debit from A-1415 inside 14:50:00-15:20:00, the 30 minutes after T0041
+    C7  T0056 is a debit from A-1415 inside 14:50:00-15:20:00, C7's search scope
+  Not selected: C1 C2 C3 C4 C5. Incremental revalidation equals a full recheck: 7 of 7 verdicts.
+
+AFTER   r2 published, with amendment A1 (r1 -> r2).
+  F4  superseded at r2. Its claims stay supported relative to r1; at r2:
+      C6 unsupported: the longest chain is 2 onward link(s), not 1; terminal_accounts are ['A-6630'], not ...
+      C7 unsupported: qualifying onward transfer(s) from A-1415: onward:T0041:T0056 (T0056 at 15:01:00)
+  F5  its paths: at most 2 onward links, ending at A-6630; no qualifying onward transfer from A-6630 at
+      15:01:00-15:31:00; path T0038 > T0041 > T0056  [C8 C9 C10 C11: supported at r2]
+  Unchanged: F1, F2, F3. Not selected, so carried: C1 C2 C3 C4 C5. A full recheck agrees with each.
+```
+
+The record this repository ships is in `revision/`: the ledger, each
+revision's store, revision 1's case note
+([`revision/r1-case-note.md`](revision/r1-case-note.md)) and the amendment
+([`revision/r2-amendment.md`](revision/r2-amendment.md)). `verify.py` checks
+it with no Docker.
+
+### Step by step
+
+1. **Revision r1.** clink replays the 55 transfers through
+   `pipeline/revision.sql`, with nothing arrived yet, into a Relate store. As
+   for the case itself, the store is published only when clink exited 0,
+   every record is in it as written, and its indicators and onward links equal
+   the independent reference. `revise.py` then writes a case note from the
+   evidence in Relate, with no model: four findings resting on seven claims,
+   each checked against the events and the graph.
+2. **The absence.** F4 says the candidate paths from A-9895's alert end at
+   A-1415: in evidence revision r1 there is no qualifying onward transfer from
+   A-1415 between 14:50:00 and 15:20:00 UTC on 10 November 2026, the 30 minutes
+   after T0041 paid it.
+3. **The arrival.** `data/arrival.ndjson` delivers a transfer that was not
+   available before: T0056, A-1415 to A-6630, 130.00 at 15:01:00, inside that
+   interval.
+4. **Event time.** Revision 1's replay has completed, and its jobs' state
+   with it, so nothing can be appended to it. By the pipeline's lateness rule,
+   T0056 is also 2 h 59 min behind the watermark that replay reached, far
+   beyond its five-minute allowance. So revision r2 is a bounded
+   recomputation: clink replays revision 1's file and the arrival as two
+   inputs, merged by event time, and judges T0056 by the same allowance as
+   every other transfer. It derives `onward:T0041:T0056` and writes it through
+   the Relate connector.
+5. **Selection.** Each claim's dependencies are windows on accounts, held in
+   Relate. One Cypher pattern finds the claims a new transfer falls into: C6,
+   the alert's reach, and C7, the absence. The same rule run over the ledger
+   must agree. Both are checked again; the other five carry their verdicts, and
+   a full recheck of all seven must give the same verdicts.
+6. **The amendment.** C6 and C7 no longer hold at r2, so amendment A1
+   supersedes F4 with F5: the paths now run two onward links, through T0056,
+   and end at A-6630, from which no qualifying onward transfer follows in r2.
+   F5's four claims, the new transfer and a path through the new link among
+   them, are supported at r2. F1, F2 and F3, about the alert's own indicator
+   and about A-9278's alert, are unchanged.
+
+### Who does what
+
+- **clink** derives every indicator and onward link, in both revisions.
+  `pipeline/revision.sql` runs the three jobs of `pipeline/case.sql`,
+  statement for statement (a test holds them equal), over two inputs.
+- **Relate** holds, in each revision's store, clink's evidence and, beside it,
+  the investigation as of that revision: the revisions, each claim with what it
+  cites and its dependency windows, every validation so far, the findings and
+  the amendment. The selection is a query over it.
+- **The checker** decides deterministically whether each claim holds for a
+  revision, against that revision's graph and against the reference rules
+  applied to its original events, as for the case note.
+- **No model** runs in it. An agent could explain an amendment; none is used.
+
+### Claims, and what they depend on
+
+A claim has a stable id, a structured predicate, the evidence revision it was
+asserted at, and a validation history that is only ever appended to. Five
+claim types support revision:
+
+| Type | Asserts | Depends on |
+|---|---|---|
+| `event` | a transfer exists with exactly these values | nothing: an existing transfer never changes |
+| `indicator` | a fan-in indicator's values and contributing transfers | credits to its account inside its window |
+| `onward_path` | each step is a recorded onward link, and none leaves the last transfer | debits from the account the last transfer paid, in the 30 minutes after it |
+| `onward_reach` | an alert's candidate paths: how deep, where they end, the accounts along them | debits from each account a path transfer paid, in the 30 minutes after it, and credits to the alerted account in its window |
+| `no_onward_transfer` | no qualifying onward transfer from an account, its debit inside an event-time interval | debits from the account inside the interval, and credits to it from 30 minutes before it |
+
+An absence records its search scope, not a list of ids: the account, the
+relationship pattern (an onward link into a debit the account sent), the
+interval with both ends included, and the dataset it covered (the revision,
+its digest and its number of transfers). C7 cites no transfer at all, and
+T0056 did not exist when C7 was asserted: only its scope can show that T0056
+bears on it.
+
+Selection misses nothing because every onward link a new transfer creates has
+that transfer at one end, inside a window of each claim the link can affect.
+That holds while evidence is only added and a claim is asserted only when the
+checker supports it at its revision, and `revise.py` keeps both. Selecting a
+claim that turns out unchanged is allowed. `tests/test_revision.py` tries 400
+seeded random arrivals aimed at the windows and their edges, one and two
+revisions deep: no claim whose verdict changed went unselected, and the
+incremental verdicts equalled a full recheck every time.
+
+### Update semantics
+
+- **What publishes a revision.** In order: clink exited 0 and was not
+  cancelled; every record of the revision's dataset is in the store as
+  written; its indicators, onward links and paths equal the reference; the
+  dependency query in Relate selects exactly what the rule over the ledger
+  selects; incremental revalidation equals the full recheck; every claim of a
+  replacement finding is supported; and, with the investigation written beside
+  the evidence, both are checked once more. Only then does the store move into
+  place and the ledger gain its records, the publication last. The ledger's
+  last publication names the published revision; no checkpoint id stands for
+  one.
+- **A failed update** publishes nothing. The ledger is untouched, and the
+  previous revision stays the published one, whole and checkable.
+- **Replays.** A transfer delivered again unchanged adds nothing; an arrival
+  that adds nothing new causes no recomputation and no amendment. A different
+  transfer under a known id is a correction, and is refused.
+- **Historical meaning.** C7 was supported by revision 1 and stays supported
+  relative to revision 1. Its r1 validation is never rewritten, and neither is
+  revision 1's case note, whose sha256 the ledger keeps. What changed is its
+  applicability: at r2 it does not hold, and the amendment says so.
+- **The ledger**, `revision/ledger.jsonl`, holds one JSON record per line, each
+  naming the sha256 of the line before, so a rewritten line breaks the chain.
+  Each revision's store holds the investigation up to that revision, and
+  `verify.py` checks that the two agree.
+
+### Inspect it through Relate
+
+```bash
+.venv/bin/python explore.py --revision r2 --cypher "MATCH (:Revision {id: 'r2'})-[:ADDED]->(t:Transfer)<-[:SENT]-(a:Account)<-[s:SCOPE {revision: 'r1', role: 'debit'}]-(c:Claim) WHERE s.start_ms <= t.ts AND t.ts <= s.end_ms RETURN c.id AS claim, c.type AS type, t.id AS new_transfer, a.id AS account"
+.venv/bin/python explore.py --revision r2 --cypher "MATCH (v:Validation)-[:OF]->(:Claim {id: 'C7'}) RETURN v.revision AS revision, v.status AS status, v.method AS method"
+.venv/bin/python explore.py --revision r2 --cypher "MATCH (a:Amendment)-[r]->(x) RETURN type(r) AS link, labels(x)[0] AS kind, x.id AS id"
+```
+
+Relate's MCP server serves the published revision as well: `.mcp.json` lists a
+third server, `streaming-alert-case-revision`, and `mcp_check.py` checks that
+the dependency query and the amendment, read over MCP, equal the ledger.
+
+### What ran
+
+On 18 November 2026, on macOS 26.3.1 arm64 with Docker Desktop (engine
+29.8.2) and clink's runtime image `0.16.2`, pinned by digest as in
+`rebuild.sh`:
+
+- `revise.py --out revision` wrote the shipped record, with the output above.
+- Twelve recomputations of r2, each with a fresh clink run, all derived
+  `onward:T0041:T0056` and published. With the arrival appended after revision
+  1's transfers in one input instead, as a continuing stream would read it,
+  clink paired T0056 with T0041 in 7 runs of 12 and not in the other 5, and
+  the gates refused all 5. A transfer that late has no guarantee: whether
+  clink's self-join still holds T0041 when T0056 reaches it depends on how far
+  the join's other read has got. This is why each revision is a recomputation.
+- With clink, other arrivals: an unrelated transfer, and one from A-1415 at
+  15:35:00, after the interval, each published r2 with no claim selected and
+  no amendment; one at 15:20:00, the interval's last millisecond, superseded F4
+  as above; the same arrival twice added nothing the second time.
+- `verify.py` passed 67 of 67 checks, 9 of them on `revision/`; `mcp_check.py`
+  passed 24 of 24, 4 of them on the revision store; and 57 tests passed, 22 of
+  them new, the ones that run clink in Docker included.
+
+### Limits
+
+- A staged scenario: two bounded replays, one arrival between them. Not
+  continuous streaming, and no live watermark frontier: the lateness check is
+  arithmetic over the replay's own last transfer and the pipeline's allowance.
+- Every revision recomputes the whole dataset, which is cheap at 56
+  transfers. Only the revalidation of claims is incremental.
+- Evidence is only added. Corrections, deletions and retractions are refused,
+  not handled.
+- Five claim types. Shared-device and count claims, and the claims the agent
+  writes, are not supported for revision, and the staged case note does not
+  use them.
+- New alerts that an arrival creates are recorded in the revision, not
+  investigated: no finding is written for them.
+- The findings' and the amendment's wording comes from templates in
+  `alertcase/revision.py`. The checker validates the structured claims, not
+  the prose. No agent wrote or explained an amendment.
+- One synthetic scenario, run only in Docker on macOS arm64.
+- Rebuilt stores are not byte-identical; the ledger records the hash of the
+  store each revision published.
+
 ## What ran
 
 On macOS 26.3.1, arm64, on 13 November 2026, and on 14, 17 and 18 November
@@ -642,6 +864,8 @@ passed the spike's nine store checks.
 
 ## Not done, and not verified
 
+- **The evolving investigation** has limits of its own, listed with it under
+  "Evidence-driven revision of investigative findings".
 - **Model and dataset variety:** the comparisons use one model, two synthetic
   datasets and three runs per arm. They are observations, not statistically
   tested differences.

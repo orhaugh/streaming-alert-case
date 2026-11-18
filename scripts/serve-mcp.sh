@@ -4,6 +4,7 @@
 # Desktop, Cursor and others) to start.
 #
 #   sh scripts/serve-mcp.sh [small|large]   the 55-transfer case (default), or 50,000 transfers
+#   sh scripts/serve-mcp.sh revision        the evolving investigation's published revision (revise.py)
 #   sh scripts/serve-mcp.sh --config        print a host configuration with this checkout's absolute paths
 #
 # Every path is resolved from this script's own location, so a host may start
@@ -17,7 +18,8 @@
 #   - the store is there; the large case's is unpacked from its gzipped copy
 #     on first use, and again whenever that copy changes, by the rule
 #     alertcase/cases.py states: <store>.unpacked-from holds the sha256 of the
-#     gzipped copy the store came from;
+#     gzipped copy the store came from; for revision, the store is the one the
+#     last publication in revision/ledger.jsonl names;
 #   - the store's Run record shows a completed bounded replay: every job
 #     completed, clink exited 0 and was not cancelled. scripts/publish_run.py
 #     publishes a store only after that; this checks the store being served.
@@ -47,6 +49,10 @@ if [ "${1:-}" = "--config" ]; then
     "streaming-alert-case-large": {
       "command": "/bin/sh",
       "args": ["${script}", "large"]
+    },
+    "streaming-alert-case-revision": {
+      "command": "/bin/sh",
+      "args": ["${script}", "revision"]
     }
   }
 }
@@ -57,8 +63,15 @@ fi
 case "${1:-small}" in
     small) store="${ROOT}/store/case.rl" ;;
     large) store="${ROOT}/store/large.rl" ;;
+    revision)
+        ledger="${ROOT}/revision/ledger.jsonl"
+        [ -f "${ledger}" ] || fail "no published investigation at ${ROOT}/revision: run revise.py --out revision"
+        published=$(grep '"kind": "publication"' "${ledger}" | tail -n 1 | sed -n 's/.*"store": "\(r[0-9]*\.rl\)".*/\1/p')
+        [ -n "${published}" ] || fail "${ledger} records no publication"
+        store="${ROOT}/revision/${published}"
+        ;;
     *)
-        echo "usage: sh scripts/serve-mcp.sh [small|large] | --config" >&2
+        echo "usage: sh scripts/serve-mcp.sh [small|large|revision] | --config" >&2
         exit 2
         ;;
 esac

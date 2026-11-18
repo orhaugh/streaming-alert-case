@@ -8,6 +8,8 @@ For each bounded dataset (the small case, and the same pipeline at scale):
      deliberately unsupported claim in claims/ is rejected;
   3. the tables: the SQLite tables the table-based agent reads hold the same
      records as the store.
+Then the evolving investigation in revision/ (revise.py): its ledger and
+each revision's store, evidence, verdicts, selection and amendment.
 Then every recorded agent run: its claims are checked again against its
 dataset's store and events, and each claim's verdict and every score recorded
 beside the run must equal the ones computed again; each comparison's summary
@@ -32,6 +34,7 @@ from alertcase.casenote import arm_text
 from alertcase.claims import check_claims, flatten_claims
 from alertcase.comparison import summarise
 from alertcase.graph import Graph
+from alertcase.revision_store import verify_investigation
 from alertcase.scoring import score
 from alertcase.store_checks import check_store
 
@@ -143,11 +146,20 @@ def main() -> int:
                         help="recorded runs kept for the record, made with an earlier version of the prompt")
     parser.add_argument("--shakedown", type=Path, default=Path("runs/shakedown"),
                         help="live runs that checked the harness before recording; part of no result")
+    parser.add_argument("--revision", type=Path, default=Path("revision"),
+                        help="the published evolving investigation revise.py wrote (the small case's)")
     args = parser.parse_args()
 
     report = Report()
     names = sorted(CASES, key=lambda n: n != "small") if args.case == "all" else [args.case]
     sources = {name: check_case(CASES[name], report) for name in names}
+    if "small" in names:
+        report.section(f"Evidence-driven revision of investigative findings, {args.revision}")
+        if (args.revision / "ledger.jsonl").exists():
+            verify_investigation(args.revision, report.record)
+        else:
+            report.record("ledger", False, f"no published investigation at {args.revision}: run "
+                          f"revise.py --out {args.revision}")
     check_runs(args.runs, "Recorded agent runs", sources, report)
     if args.superseded.exists():
         check_runs(args.superseded, "Superseded agent runs", sources, report)

@@ -9,6 +9,10 @@ Everything on screen runs live and offline, with no AI model and no API key,
 except the case note in section 4. An AI agent wrote that on 13 November, and
 the narration says so.
 
+An optional sixth section, outside the two-minute cut, shows a finding revised
+when new evidence arrives. `./scripts/demo.sh --revision` runs it on its own,
+so it can be recorded separately or shown live.
+
 ## Before you record
 
 1. Use a clone set up as the README describes, with Docker running and the
@@ -74,6 +78,28 @@ checker's verdict on each claim, a hypothesis, and an open question.
 
 On screen: the two planted claims, each rejected, and 34 of 34 checks passed.
 
+## 6. Optional: new evidence, the affected finding, a verified amendment (about 40 seconds)
+
+Not part of the two-minute video. Run `./scripts/demo.sh --revision`.
+
+> Investigations change when evidence turns up late. In the first replay, the
+> trail from A-9895 ends at A-1415: nothing qualifying leaves it within 30
+> minutes. Then a transfer arrives that was not there before: A-1415 paid on
+> eleven minutes after it was credited. A finished replay can't take it, and
+> by event time it's three hours late, so clink recomputes from both files,
+> merged by event time, and links the two transfers. Relate holds what each
+> claim depends on, and one query finds the two claims this transfer touches.
+> The checker confirms they held for the first revision and not the second.
+> The old finding is superseded by an amendment, not rewritten, and the
+> findings it didn't touch stand.
+
+On screen: before, F4 with its absence at A-1415; the change, T0056, why it
+is late, the new link onward:T0041:T0056 and the two claims selected; after,
+F4 superseded by F5, with the path T0038, T0041, T0056, and F1 to F3
+unchanged. Then the query in Relate that finds the claims T0056 falls into.
+It needs no clean-up: revise.py publishes into `build/revision/`, which git
+does not track.
+
 ## Record and upload (macOS)
 
 1. Press Shift-Command-5, choose Record Selected Portion around the terminal,
@@ -105,4 +131,9 @@ On screen: the two planted claims, each rejected, and 34 of 34 checks passed.
    ```
 5. ```bash
    .venv/bin/python verify.py --case small | grep -E 'planted P[23]|checks passed' | cut -c1-118
+   ```
+6. Optional, with `--revision`:
+   ```bash
+   .venv/bin/python revise.py | grep -v -E '^(Bounded replays|  Case note|  Ledger)' | cut -c1-118
+   .venv/bin/python explore.py --revision r2 --cypher "MATCH (:Revision {id: 'r2'})-[:ADDED]->(t:Transfer)<-[:SENT]-(a:Account)<-[s:SCOPE {revision: 'r1', role: 'debit'}]-(c:Claim) WHERE s.start_ms <= t.ts AND t.ts <= s.end_ms RETURN c.id AS claim, c.type AS type, t.id AS new_transfer, a.id AS account"
    ```

@@ -53,6 +53,12 @@ def _strip(record: dict, *names: str) -> dict:
 
 def from_events(path: str | Path = "data/events.ndjson") -> Facts:
     events = load_events(path)
+    return from_records(events, {"dataset_sha256": sha256_of(path), "dataset_events": len(events)})
+
+
+def from_records(events: list[dict], run: dict | None = None) -> Facts:
+    """The reference facts of records already read: for a dataset made of more
+    than one file, as an evidence revision is (revise.py)."""
     indicators = reference.fan_in(events)
     pairs = reference.onward(events)
     transfers = {e["transfer_id"]: _strip(e, "transfer_id") for e in events}
@@ -63,7 +69,7 @@ def from_events(path: str | Path = "data/events.ndjson") -> Facts:
         links={p["id"]: _strip(p, "id") for p in pairs},
         investigation={r["indicator"]: _strip(r, "indicator") for r in reference.investigate(events, indicators, pairs)},
         device_senders=_device_senders(transfers),
-        run={"dataset_sha256": sha256_of(path), "dataset_events": len(events)},
+        run=run,
     )
 
 

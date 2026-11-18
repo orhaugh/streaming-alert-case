@@ -5,12 +5,15 @@ With no arguments, prints each alert with its evidence, its candidate onward pat
 the devices on them, where the two alerts differ, and what event-time
 processing kept that arrival order would have lost. With --cypher or --sql,
 runs one read-only query against the store or the tables and prints the rows.
+With --revision and --cypher, the query runs against a revision's store in
+revision/ (revise.py): its evidence, claims, dependencies and amendments.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -148,7 +151,14 @@ def main() -> int:
     query = parser.add_mutually_exclusive_group()
     query.add_argument("--cypher", help="a read-only Cypher query against the store")
     query.add_argument("--sql", help="a read-only SQL query against tables/case.sqlite")
+    parser.add_argument("--revision", metavar="ID",
+                        help="with --cypher: query revision/<ID>.rl, an evidence revision's store, instead (r1, r2)")
     args = parser.parse_args()
+    if args.revision:
+        if not args.cypher:
+            parser.error("--revision needs --cypher")
+        if not re.fullmatch(r"r\d+", args.revision) or not Path(f"revision/{args.revision}.rl").exists():
+            parser.error(f"no revision store revision/{args.revision}.rl")
     case = CASES[args.case]
     case.unpack()
 
@@ -165,7 +175,7 @@ def main() -> int:
         finally:
             db.close()
         return 0
-    with Graph(case.store) as graph:
+    with Graph(Path(f"revision/{args.revision}.rl") if args.revision else case.store) as graph:
         if args.cypher:
             try:
                 for row in graph.rows(args.cypher):
